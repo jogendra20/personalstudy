@@ -72,7 +72,7 @@ function format(raw: string): string {
   // Remove all remaining unknown tags, keep their inner text
   const safe = ["h1","h2","h3","h4","h5","h6","p","strong","em","code","pre","blockquote","ul","ol","li","a","img","br"];
   const safeSet = new Set(safe);
-  o = o.replace(/<\/?([a-zA-Z][a-zA-Z0-9]*)[^>]*>/g, (m: string, t: string) => safeSet.has(t.toLowerCase()) ? m : "");
+  o = o.replace(/<(\/?[a-zA-Z][a-zA-Z0-9]*)(?:[\s][^>]*)?>/g, (m: string, t: string) => { const tag = t.replace("/","").toLowerCase(); return safeSet.has(tag) ? (t.startsWith("/") ? "</"+tag+">" : "<"+tag+">") : ""; });
   // Clean up
   o = o.replace(/<p>\s*<\/p>/gi, "");
   o = o.replace(/<p>(&nbsp;|\s)*<\/p>/gi, "");
@@ -108,6 +108,7 @@ export async function GET(req: NextRequest) {
       const title = stripTags((tm && tm[1]) || "Article")
         .replace("- Freedium","").replace("| Medium","")
         .replace("- Medium","").replace("| DEV Community","")
+        .replace(/\s*\|.*$/,"").replace(/\s*-[^-]*$/,"")
         .replace("- DEV Community","").trim();
       const body = isMedium ? extractMedium(html) : extractDevto(html);
       const content = format(clean(body));
