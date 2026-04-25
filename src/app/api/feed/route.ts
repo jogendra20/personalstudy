@@ -82,7 +82,7 @@ function extractCover(xml: string): string | undefined {
 
 function parseRSS(xml: string, source: string, tag: string): FeedItem[] {
   const items: FeedItem[] = [];
-  const itemMatches = Array.from(xml.matchAll(/<item>([\s\S]*?)<\/item>/gi);
+  const itemMatches = Array.from(xml.matchAll(/<item>([\s\S]*?)<\/item>/gi));
 
   for (const match of itemMatches) {
     const item = match[1];
