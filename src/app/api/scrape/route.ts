@@ -7,18 +7,15 @@ function stripTags(html: string): string {
 }
 
 function extractMedium(html: string): string {
-  // Medium article body is between the byline and the footer claps section
-  // Look for the section after "min read" and before "responses"
-  const start = html.search(/class="[^"]*pw-post-body/i);
-  if (start > 0) {
-    const chunk = html.slice(start, start + 120000);
+  const attrPos = html.search(/class="[^"]*pw-post-body/i);
+  if (attrPos > 0) {
+    const tagStart = html.lastIndexOf("<", attrPos);
+    const chunk = html.slice(tagStart, tagStart + 120000);
     const divEnd = chunk.search(/<section[^>]*data-testid="responses/i);
     return divEnd > 0 ? chunk.slice(0, divEnd) : chunk;
   }
-  // Fallback: get everything between <article> tags
   const am = html.match(/<article[^>]*>([\s\S]*?)<\/article>/i);
   if (am) return am[1];
-  // Last fallback: body
   const bm = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
   return bm ? bm[1] : html;
 }
@@ -46,42 +43,46 @@ function clean(html: string): string {
 
 function format(raw: string): string {
   let o = raw;
-  // Block elements - preserve structure
   o = o.replace(/<h1[^>]*>([\s\S]*?)<\/h1>/gi, "\n<h1>$1</h1>\n");
   o = o.replace(/<h2[^>]*>([\s\S]*?)<\/h2>/gi, "\n<h2>$1</h2>\n");
   o = o.replace(/<h3[^>]*>([\s\S]*?)<\/h3>/gi, "\n<h3>$1</h3>\n");
   o = o.replace(/<h4[^>]*>([\s\S]*?)<\/h4>/gi, "\n<h4>$1</h4>\n");
-  o = o.replace(/<p[^>]*>([\s\S]*?)<\/p>/gi, "\n<p>$1</p>\n");
   o = o.replace(/<pre[^>]*>([\s\S]*?)<\/pre>/gi, "\n<pre>$1</pre>\n");
   o = o.replace(/<blockquote[^>]*>([\s\S]*?)<\/blockquote>/gi, "\n<blockquote>$1</blockquote>\n");
   o = o.replace(/<ul[^>]*>([\s\S]*?)<\/ul>/gi, "\n<ul>$1</ul>\n");
   o = o.replace(/<ol[^>]*>([\s\S]*?)<\/ol>/gi, "\n<ol>$1</ol>\n");
   o = o.replace(/<li[^>]*>([\s\S]*?)<\/li>/gi, "<li>$1</li>");
-  // Inline elements
+  o = o.replace(/<p[^>]*>([\s\S]*?)<\/p>/gi, "\n<p>$1</p>\n");
   o = o.replace(/<strong[^>]*>([\s\S]*?)<\/strong>/gi, "<strong>$1</strong>");
   o = o.replace(/<b[^>]*>([\s\S]*?)<\/b>/gi, "<strong>$1</strong>");
   o = o.replace(/<em[^>]*>([\s\S]*?)<\/em>/gi, "<em>$1</em>");
   o = o.replace(/<i[^>]*>([\s\S]*?)<\/i>/gi, "<em>$1</em>");
   o = o.replace(/<code[^>]*>([\s\S]*?)<\/code>/gi, "<code>$1</code>");
   o = o.replace(/<br\s*\/?>/gi, "<br/>");
-  // Images
-  o = o.replace(/<img[^>]*src="([^"]+)"[^>]*alt="([^"]*)"[^>]*\/?>/gi, "\n<img src=\"$1\" alt=\"$2\" />\n");
-  o = o.replace(/<img[^>]*src="([^"]+)"[^>]*\/?>/gi, "\n<img src=\"$1\" />\n");
-  // Links
-  o = o.replace(/<a[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi, '<a href="$1">$2</a>');
-  // Remove all remaining unknown tags, keep their inner text
-  const safe = ["h1","h2","h3","h4","h5","h6","p","strong","em","code","pre","blockquote","ul","ol","li","br"];
-  const safeSet = new Set(safe);
-  // Strip ALL attributes from every tag, then remove unknown tags
-  o = o.replace(/<([a-zA-Z][a-zA-Z0-9]*)[^>]*>/g, (m: string, t: string) => {
-    const tag = t.toLowerCase();
-    if (tag === "img") return m; // keep img src
-    if (tag === "a") return m;   // keep a href
-    return safeSet.has(tag) ? "<" + tag + ">" : "";
+  o = o.replace(/<img[^>]*>/gi, (m: string) => {
+    const srcArr = Array.from(m.matchAll(/src\s*=\s*"([^"]*)"/g));
+    const altArr = Array.from(m.matchAll(/alt\s*=\s*"([^"]*)"/g));
+    const src = srcArr[0] ? srcArr[0][1] : "";
+    const alt = altArr[0] ? altArr[0][1] : "";
+    if (!src) return "";
+    return alt ? `\n<img src="${src}" alt="${alt}" />\n` : `\n<img src="${src}" />\n`;
   });
-  o = o.replace(/<\/([a-zA-Z][a-zA-Z0-9]*)>/g, (m: string, t: string) => safeSet.has(t.toLowerCase()) || t.toLowerCase() === "a" ? m : "");
-
-  // Clean up
+  o = o.replace(/<a[^>]*>/gi, (m: string) => {
+    const hrefArr = Array.from(m.matchAll(/href\s*=\s*"([^"]*)"/g));
+    const href = hrefArr[0] ? hrefArr[0][1] : "";
+    return href ? `<a href="${href}">` : "";
+  });
+  const safeSet = new Set(["h1","h2","h3","h4","h5","h6","p","strong","em",
+    "code","pre","blockquote","ul","ol","li","br","img","a"]);
+  o = o.replace(/<([a-zA-Z][a-zA-Z0-9]*)([^>]*)>/g, (m: string, t: string, attrs: string) => {
+    const tag = t.toLowerCase();
+    if (!safeSet.has(tag)) return "";
+    if (attrs.trim() === "" || attrs.trim() === "/") return m;
+    return `<${tag}>`;
+  });
+  o = o.replace(/<\/([a-zA-Z][a-zA-Z0-9]*)>/g, (m: string, t: string) => {
+    return safeSet.has(t.toLowerCase()) ? m : "";
+  });
   o = o.replace(/<p>\s*<\/p>/gi, "");
   o = o.replace(/<p>(&nbsp;|\s)*<\/p>/gi, "");
   o = o.replace(/\n{4,}/g, "\n\n");
@@ -91,14 +92,12 @@ function format(raw: string): string {
 export async function GET(req: NextRequest) {
   const url = req.nextUrl.searchParams.get("url");
   if (!url) return NextResponse.json({ error: "No URL" }, { status: 400 });
-
   const isMedium = url.includes("medium.com");
   const targets = isMedium ? [
     url,
     "https://freedium.cfd/" + url,
     "https://scribe.rip/" + url.replace("https://medium.com", ""),
   ] : [url];
-
   let lastError = "All sources failed";
   for (const targetUrl of targets) {
     try {
