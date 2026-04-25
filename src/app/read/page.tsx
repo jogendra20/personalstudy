@@ -271,9 +271,18 @@ function ReadPageInner() {
     if (!url) { setError("No URL provided."); setLoading(false); return; }
     setSaved(isArticleSaved(url));
 
-    scrapeArticle(url)
+    fetch(`/api/scrape?url=${encodeURIComponent(url)}`)
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
       .then(data => { setArticle(data); setLoading(false); })
-      .catch(e => { setError(e.message || "Failed to load article."); setLoading(false); });
+      .catch(() => {
+        setArticle({
+          title: meta?.title || "Article",
+          content: `<iframe src="${url}" style="width:100%;height:80vh;border:none;border-radius:12px;" />`,
+          textContent: "",
+          siteName: url.includes("medium.com") ? "Medium" : "Dev.to",
+        });
+        setLoading(false);
+      });
   }, [url]);
 
   function handleSave() {
