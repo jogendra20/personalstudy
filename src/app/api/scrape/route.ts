@@ -55,8 +55,7 @@ function format(raw: string): string {
     '<a href="$1">$2</a>');
   o = o.replace(/<br\s*\/?>/gi, "<br/>");
   // Remove remaining unknown tags but preserve their text content
-  o = o.replace(/<[a-zA-Z][^>]*>/g, "");
-  o = o.replace(/<\/[a-zA-Z]+>/g, "");
+  // Remove only unknown div/span wrappers, keep formatted tags
   // Clean empty paragraphs and excess newlines
   o = o.replace(/<p>\s*<\/p>/gi, "");
   o = o.replace(/\n{4,}/g, "\n\n");
@@ -70,9 +69,10 @@ export async function GET(req: NextRequest) {
   const isMedium = url.includes("medium.com");
   // Multiple fallback sources
   const targets = isMedium ? [
+    url,
     "https://freedium.cfd/" + url,
-    "https://md.vern.cc/" + url,
     "https://scribe.rip/" + url.replace("https://medium.com", ""),
+    "https://md.vern.cc/" + url,
   ] : [url];
 
   let lastError = "All sources failed";
