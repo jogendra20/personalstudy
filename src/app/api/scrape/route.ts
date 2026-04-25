@@ -70,9 +70,17 @@ function format(raw: string): string {
   // Links
   o = o.replace(/<a[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi, '<a href="$1">$2</a>');
   // Remove all remaining unknown tags, keep their inner text
-  const safe = ["h1","h2","h3","h4","h5","h6","p","strong","em","code","pre","blockquote","ul","ol","li","a","img","br"];
+  const safe = ["h1","h2","h3","h4","h5","h6","p","strong","em","code","pre","blockquote","ul","ol","li","br"];
   const safeSet = new Set(safe);
-  o = o.replace(/<(\/?[a-zA-Z][a-zA-Z0-9]*)(?:[\s][^>]*)?>/g, (m: string, t: string) => { const tag = t.replace("/","").toLowerCase(); return safeSet.has(tag) ? (t.startsWith("/") ? "</"+tag+">" : "<"+tag+">") : ""; });
+  // Strip ALL attributes from every tag, then remove unknown tags
+  o = o.replace(/<([a-zA-Z][a-zA-Z0-9]*)[^>]*>/g, (m: string, t: string) => {
+    const tag = t.toLowerCase();
+    if (tag === "img") return m; // keep img src
+    if (tag === "a") return m;   // keep a href
+    return safeSet.has(tag) ? "<" + tag + ">" : "";
+  });
+  o = o.replace(/<\/([a-zA-Z][a-zA-Z0-9]*)>/g, (m: string, t: string) => safeSet.has(t.toLowerCase()) || t.toLowerCase() === "a" ? m : "");
+
   // Clean up
   o = o.replace(/<p>\s*<\/p>/gi, "");
   o = o.replace(/<p>(&nbsp;|\s)*<\/p>/gi, "");
