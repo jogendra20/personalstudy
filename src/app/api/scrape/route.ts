@@ -43,66 +43,48 @@ function clean(html: string): string {
 
 function format(raw: string): string {
   let o = raw;
-
-  // Pre/code blocks first — strip inner spans, preserve text
   o = o.replace(/<pre[^>]*>([\s\S]*?)<\/pre>/gi, (_: string, inner: string) => {
     const text = inner.replace(/<[^>]*>/g, "").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#39;/g, "'");
-    return `\n<pre><code>${text.trim()}</code></pre>\n`;
+    return "\n<pre><code>" + text.trim() + "</code></pre>\n";
   });
-
-  // Headings
   o = o.replace(/<h1[^>]*>([\s\S]*?)<\/h1>/gi, "\n<h1>$1</h1>\n");
   o = o.replace(/<h2[^>]*>([\s\S]*?)<\/h2>/gi, "\n<h2>$1</h2>\n");
   o = o.replace(/<h3[^>]*>([\s\S]*?)<\/h3>/gi, "\n<h3>$1</h3>\n");
   o = o.replace(/<h4[^>]*>([\s\S]*?)<\/h4>/gi, "\n<h4>$1</h4>\n");
-
-  // Block elements
   o = o.replace(/<blockquote[^>]*>([\s\S]*?)<\/blockquote>/gi, "\n<blockquote>$1</blockquote>\n");
   o = o.replace(/<ul[^>]*>([\s\S]*?)<\/ul>/gi, "\n<ul>$1</ul>\n");
   o = o.replace(/<ol[^>]*>([\s\S]*?)<\/ol>/gi, "\n<ol>$1</ol>\n");
   o = o.replace(/<li[^>]*>([\s\S]*?)<\/li>/gi, "<li>$1</li>");
   o = o.replace(/<p[^>]*>([\s\S]*?)<\/p>/gi, "\n<p>$1</p>\n");
-
-  // Inline
   o = o.replace(/<strong[^>]*>([\s\S]*?)<\/strong>/gi, "<strong>$1</strong>");
   o = o.replace(/<b[^>]*>([\s\S]*?)<\/b>/gi, "<strong>$1</strong>");
   o = o.replace(/<em[^>]*>([\s\S]*?)<\/em>/gi, "<em>$1</em>");
   o = o.replace(/<i[^>]*>([\s\S]*?)<\/i>/gi, "<em>$1</em>");
   o = o.replace(/<code[^>]*>([\s\S]*?)<\/code>/gi, "<code>$1</code>");
   o = o.replace(/<br\s*\/?>/gi, "<br/>");
-
-  // img — src + alt only
   o = o.replace(/<img[^>]*>/gi, (m: string) => {
     const srcArr = Array.from(m.matchAll(/src\s*=\s*"([^"]*)"/g));
     const altArr = Array.from(m.matchAll(/alt\s*=\s*"([^"]*)"/g));
     const src = srcArr[0] ? srcArr[0][1] : "";
     const alt = altArr[0] ? altArr[0][1] : "";
     if (!src) return "";
-    return alt ? `\n<img src="${src}" alt="${alt}" />\n` : `\n<img src="${src}" />\n`;
+    return alt ? "\n<img src=\"" + src + "\" alt=\"" + alt + "\" />\n" : "\n<img src=\"" + src + "\" />\n";
   });
-
-  // a — href only
   o = o.replace(/<a[^>]*>/gi, (m: string) => {
     const hrefArr = Array.from(m.matchAll(/href\s*=\s*"([^"]*)"/g));
     const href = hrefArr[0] ? hrefArr[0][1] : "";
-    return href ? `<a href="${href}">` : "";
+    return href ? "<a href=\"" + href + "\">" : "";
   });
-
-  // Strip all remaining unknown/attribute-carrying tags
-  const safeSet = new Set(["h1","h2","h3","h4","h5","h6","p","strong","em",
-    "code","pre","blockquote","ul","ol","li","br","img","a"]);
-
+  const safeSet = new Set(["h1","h2","h3","h4","h5","h6","p","strong","em","code","pre","blockquote","ul","ol","li","br","img","a"]);
   o = o.replace(/<([a-zA-Z][a-zA-Z0-9]*)([^>]*)>/g, (m: string, t: string, attrs: string) => {
     const tag = t.toLowerCase();
     if (!safeSet.has(tag)) return "";
     if (attrs.trim() === "" || attrs.trim() === "/") return m;
-    return `<${tag}>`;
+    return "<" + tag + ">";
   });
   o = o.replace(/<\/([a-zA-Z][a-zA-Z0-9]*)>/g, (m: string, t: string) => {
     return safeSet.has(t.toLowerCase()) ? m : "";
   });
-
-  // Cleanup
   o = o.replace(/<p>\s*<\/p>/gi, "");
   o = o.replace(/<p>(&nbsp;|\s)*<\/p>/gi, "");
   o = o.replace(/\n{4,}/g, "\n\n");
