@@ -42,7 +42,7 @@ body {
 /* ── Article Typography — Medium style ── */
 .article-content {
   font-family: 'Georgia', 'Charter', serif;
-  font-size: 1.18rem;
+  font-size: 1.05rem;
   line-height: 1.9;
   color: #242424;
   word-break: break-word;
@@ -95,7 +95,7 @@ body {
 }
 
 .article-content > p:first-of-type {
-  font-size: 1.22rem;
+  font-size: 1.1rem;
   color: #111;
   line-height: 1.85;
 }
@@ -215,3 +215,139 @@ body {
 .stagger > *:nth-child(4) { animation-delay: 0.2s; }
 .stagger > *:nth-child(5) { animation-delay: 0.25s; }
 .stagger > *:nth-child(6) { animation-delay: 0.3s; }
+
+/* ── Medium Clone Read Page ── */
+.medium-header {
+  border-bottom: 1px solid #e5e5e5;
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.article-content {
+  font-family: 'Georgia', 'Charter', 'Palatino', serif !important;
+  font-size: 20px !important;
+  line-height: 1.8 !important;
+  color: #242424 !important;
+  letter-spacing: -0.003em;
+}
+
+.article-content h1 {
+  font-family: 'Syne', sans-serif !important;
+  font-size: 36px !important;
+  font-weight: 700 !important;
+  color: #111 !important;
+  margin: 32px 0 8px !important;
+  line-height: 1.15 !important;
+  letter-spacing: -0.016em !important;
+}
+
+.article-content h2 {
+  font-family: 'Syne', sans-serif !important;
+  font-size: 26px !important;
+  font-weight: 700 !important;
+  color: #111 !important;
+  margin: 40px 0 8px !important;
+  line-height: 1.25 !important;
+  letter-spacing: -0.012em !important;
+}
+
+.article-content h3 {
+  font-family: 'Syne', sans-serif !important;
+  font-size: 22px !important;
+  font-weight: 600 !important;
+  color: #111 !important;
+  margin: 32px 0 6px !important;
+}
+
+.article-content p {
+  margin: 0 0 2em !important;
+  color: #242424 !important;
+}
+
+.article-content > p:first-of-type {
+  font-size: 20px !important;
+}
+
+.article-content strong, .article-content b {
+  font-weight: 700 !important;
+  color: #111 !important;
+}
+
+.article-content a {
+  color: inherit !important;
+  text-decoration: underline !important;
+  text-underline-offset: 2px !important;
+  text-decoration-color: rgba(0,0,0,0.4) !important;
+}
+
+.article-content code {
+  font-family: 'DM Mono', monospace !important;
+  font-size: 0.85em !important;
+  background: rgba(0,0,0,0.05) !important;
+  border: none !important;
+  padding: 2px 6px !important;
+  border-radius: 3px !important;
+  color: #c7254e !important;
+}
+
+.article-content pre {
+  font-family: 'DM Mono', monospace !important;
+  font-size: 14px !important;
+  background: #f8f8f8 !important;
+  border: 1px solid #e8e8e8 !important;
+  border-radius: 4px !important;
+  padding: 20px 24px !important;
+  overflow-x: auto !important;
+  margin: 32px 0 !important;
+  line-height: 1.7 !important;
+  color: #333 !important;
+  border-left: none !important;
+}
+
+.article-content blockquote {
+  border-left: 4px solid #111 !important;
+  padding: 2px 0 2px 20px !important;
+  margin: 32px 0 !important;
+  color: #555 !important;
+  font-style: italic !important;
+  background: none !important;
+  font-size: 22px !important;
+  line-height: 1.6 !important;
+}
+
+.article-content ul, .article-content ol {
+  padding-left: 30px !important;
+  margin: 0 0 2em !important;
+}
+
+.article-content li {
+  margin-bottom: 8px !important;
+  color: #242424 !important;
+  font-size: 20px !important;
+  line-height: 1.75 !important;
+}
+
+.article-content img {
+  max-width: 100% !important;
+  border-radius: 4px !important;
+  margin: 32px auto !important;
+  display: block !important;
+}
+
+.article-content hr {
+  border: none !important;
+  text-align: center !important;
+  margin: 40px 0 !important;
+}
+.article-content hr::after {
+  content: "· · ·";
+  color: #bbb;
+  font-size: 22px;
+  letter-spacing: 10px;
+}
