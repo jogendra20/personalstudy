@@ -71,7 +71,7 @@ function formatContent(raw: string): string {
   out = out.replace(/<br\s*\/?>/gi, "<br/>");
 
   // Remove all remaining unknown tags, keep content
-  out = out.replace(/<(?h[1-6]|p|strong|em|code|pre|blockquote|a|img|br|ul|ol|li))[^>]+>/gi, "");
+  out = out.replace(/<(?!(h[1-6]|p|strong|em|code|pre|blockquote|a|img|br|ul|ol|li))[^>]+>/gi, "");
 
   // Clean whitespace
   out = out.replace(/\n{3,}/g, "\n\n");
