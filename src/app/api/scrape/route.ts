@@ -113,7 +113,7 @@ export async function GET(req: NextRequest) {
       const body = isMedium ? extractMedium(html) : extractDevto(html);
       const content = format(clean(body));
       const textContent = stripTags(content);
-      if (textContent.length < 200) { lastError = "Too short"; continue; }
+      if (textContent.length < 800 && isMedium && !targetUrl.includes("freedium") && !targetUrl.includes("scribe")) { lastError = "Paywall hit"; continue; }
       return NextResponse.json({ title, content, textContent, siteName: isMedium ? "Medium" : "Dev.to" });
     } catch(e: any) {
       lastError = e.message;
