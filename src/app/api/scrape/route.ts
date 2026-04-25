@@ -7,30 +7,30 @@ function stripHtml(html: string): string {
 }
 
 function extractReadableContent(html: string): string {
-  let content = html
-    .replace(/<script[\s\S]*?<\/script>/gi, "")
-    .replace(/<style[\s\S]*?<\/style>/gi, "")
-    .replace(/<nav[\s\S]*?<\/nav>/gi, "")
-    .replace(/<header[\s\S]*?<\/header>/gi, "")
-    .replace(/<footer[\s\S]*?<\/footer>/gi, "");
+  let c = html
+    .replace(/<script[^>]*>.*?<\/script>/gis, "")
+    .replace(/<style[^>]*>.*?<\/style>/gis, "")
+    .replace(/<nav[^>]*>.*?<\/nav>/gis, "")
+    .replace(/<header[^>]*>.*?<\/header>/gis, "")
+    .replace(/<footer[^>]*>.*?<\/footer>/gis, "");
 
-  const article = content.match(/<article[^>]*>([\s\S]*?)<\/article>/i);
-  const main = content.match(/<main[^>]*>([\s\S]*?)<\/main>/i);
-  const body = content.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
-  const raw = article?.[1] || main?.[1] || body?.[1] || content;
+  const a = c.match(/<article[^>]*>(.*?)<\/article>/is);
+  const m = c.match(/<main[^>]*>(.*?)<\/main>/is);
+  const b = c.match(/<body[^>]*>(.*?)<\/body>/is);
+  const raw = (a && a[1]) || (m && m[1]) || (b && b[1]) || c;
 
   return raw
-    .replace(/<(h[1-6])[^>]*>([\s\S]*?)<\/\1>/gi, "<$1>$2</$1>")
-    .replace(/<p[^>]*>([\s\S]*?)<\/p>/gi, "<p>$1</p>")
-    .replace(/<(strong|b)[^>]*>([\s\S]*?)<\/\1>/gi, "<strong>$2</strong>")
-    .replace(/<(em|i)[^>]*>([\s\S]*?)<\/\1>/gi, "<em>$2</em>")
-    .replace(/<code[^>]*>([\s\S]*?)<\/code>/gi, "<code>$1</code>")
-    .replace(/<pre[^>]*>([\s\S]*?)<\/pre>/gi, "<pre>$1</pre>")
-    .replace(/<blockquote[^>]*>([\s\S]*?)<\/blockquote>/gi, "<blockquote>$1</blockquote>")
-    .replace(/<a[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi, '<a href="$1">$2</a>')
-    .replace(/<img[^>]*src="([^"]*)"[^>]*\/?>/gi, '<img src="$1" />')
-    .replace(/<(ul|ol)[^>]*>([\s\S]*?)<\/\1>/gi, "<$1>$2</$1>")
-    .replace(/<li[^>]*>([\s\S]*?)<\/li>/gi, "<li>$1</li>")
+    .replace(/<(h[1-6])[^>]*>(.*?)<\/\1>/gis, "<$1>$2</$1>")
+    .replace(/<p[^>]*>(.*?)<\/p>/gis, "<p>$1</p>")
+    .replace(/<(strong|b)[^>]*>(.*?)<\/\1>/gis, "<strong>$2</strong>")
+    .replace(/<(em|i)[^>]*>(.*?)<\/\1>/gis, "<em>$2</em>")
+    .replace(/<code[^>]*>(.*?)<\/code>/gis, "<code>$1</code>")
+    .replace(/<pre[^>]*>(.*?)<\/pre>/gis, "<pre>$1</pre>")
+    .replace(/<blockquote[^>]*>(.*?)<\/blockquote>/gis, "<blockquote>$1</blockquote>")
+    .replace(/<a[^>]*href="([^"]*)"[^>]*>(.*?)<\/a>/gis, '<a href="$1">$2</a>')
+    .replace(/<img[^>]*src="([^"]*)"[^>]*/>/gi, '<img src="$1" />')
+    .replace(/<(ul|ol)[^>]*>(.*?)<\/\1>/gis, "<$1>$2</$1>")
+    .replace(/<li[^>]*>(.*?)<\/li>/gis, "<li>$1</li>")
     .replace(/<(?h[1-6]|p|strong|em|code|pre|blockquote|a|img|br|ul|ol|li)\b)[^>]+>/gi, " ")
     .replace(/\s{3,}/g, " ")
     .trim();
@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
   const url = req.nextUrl.searchParams.get("url");
   if (!url) return NextResponse.json({ error: "No URL" }, { status: 400 });
 
-  const targetUrl = url.includes("medium.com") ? `https://freedium.cfd/${url}` : url;
+  const targetUrl = url.includes("medium.com") ? "https://freedium.cfd/" + url : url;
 
   try {
     const res = await fetch(targetUrl, {
@@ -51,11 +51,11 @@ export async function GET(req: NextRequest) {
       signal: AbortSignal.timeout(10000),
     });
 
-    if (!res.ok) return NextResponse.json({ error: `Fetch failed: ${res.status}` }, { status: 502 });
+    if (!res.ok) return NextResponse.json({ error: "Fetch failed: " + res.status }, { status: 502 });
 
     const html = await res.text();
-    const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
-    const title = stripHtml(titleMatch?.[1] || "Article");
+    const tm = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+    const title = stripHtml((tm && tm[1]) || "Article");
     const content = extractReadableContent(html);
     const textContent = stripHtml(content).replace(/\s+/g, " ").trim();
     const siteName = url.includes("medium.com") ? "Medium" : "Dev.to";
