@@ -169,7 +169,7 @@ function GhostreaderPanel({
                   onClick={() => {
                     const el = document.getElementById("inline-groq-key") as HTMLInputElement;
                     if (el && el.value.trim()) {
-                      setGroqKey(el.value.trim());
+                      localStorage.setItem("onyx_groq_key", el.value.trim());
                       setNoKey(false);
                     }
                   }}
