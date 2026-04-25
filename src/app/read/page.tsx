@@ -148,16 +148,39 @@ function GhostreaderPanel({
         {/* Messages */}
         <div style={{ flex: 1, overflowY: "auto", padding: "16px 20px", display: "flex", flexDirection: "column", gap: "12px" }}>
           {noKey && (
-            <div style={{
-              background: "rgba(200,255,64,0.08)",
-              border: "1px solid rgba(200,255,64,0.2)",
-              borderRadius: "10px",
-              padding: "12px 14px",
-              fontSize: "0.82rem",
-              color: "var(--accent)",
-              lineHeight: 1.5,
-            }}>
-              No Groq API key set. Add one in Settings (⚙️) on the home screen.
+            <div style={{ padding: "8px 0" }}>
+              <p style={{ fontSize: "0.8rem", color: "#666", marginBottom: "10px" }}>
+                Add your free Groq API key to enable Ghostreader.
+                Get one at <a href="https://console.groq.com" target="_blank" style={{ color: "var(--accent3)" }}>console.groq.com</a>
+              </p>
+              <div style={{ display: "flex", gap: "8px" }}>
+                <input
+                  type="password"
+                  placeholder="gsk_..."
+                  id="inline-groq-key"
+                  style={{
+                    flex: 1, padding: "9px 12px",
+                    background: "#f5f5f7", border: "1px solid #ddd",
+                    borderRadius: "8px", fontSize: "0.82rem",
+                    fontFamily: "monospace", outline: "none",
+                  }}
+                />
+                <button
+                  onClick={() => {
+                    const el = document.getElementById("inline-groq-key") as HTMLInputElement;
+                    if (el && el.value.trim()) {
+                      setGroqKey(el.value.trim());
+                      setNoKey(false);
+                    }
+                  }}
+                  style={{
+                    background: "var(--accent3)", border: "none",
+                    borderRadius: "8px", padding: "9px 16px",
+                    color: "#fff", cursor: "pointer",
+                    fontFamily: "Syne", fontWeight: 700, fontSize: "0.82rem",
+                  }}
+                >Save</button>
+              </div>
             </div>
           )}
 
