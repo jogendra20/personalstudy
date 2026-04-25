@@ -59,7 +59,7 @@ function formatContent(raw: string): string {
   out = out.replace(/<br\s*\/?>/gi, "<br/>");
 
   // Remove all other tags but keep content
-  out = out.replace(/<(?h[1-6]|p|strong|em|code|pre|blockquote|a|img|br|ul|ol|li)\b)[^>]+>/gi, "");
+  out = out.replace(/<(?!(h[1-6]|p|strong|em|code|pre|blockquote|a|img|br|ul|ol|li))[^>]+>/gi, "");
 
   // Clean up excess whitespace between tags
   out = out.replace(/>\s{2,}</g, "><");
