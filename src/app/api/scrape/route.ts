@@ -54,8 +54,11 @@ function format(raw: string): string {
   o = o.replace(/<a[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi,
     '<a href="$1">$2</a>');
   o = o.replace(/<br\s*\/?>/gi, "<br/>");
-  // Remove remaining unknown tags but preserve their text content
-  // Remove only unknown div/span wrappers, keep formatted tags
+  // Remove unknown tags but keep their text content
+  const keep = new Set(["h1","h2","h3","h4","p","strong","em","code","pre","blockquote","ul","ol","li","a","img","br"]);
+  o = o.replace(/<\/?([a-zA-Z][a-zA-Z0-9]*)[^>]*>/g, (match: string, tag: string) => {
+    return keep.has(tag.toLowerCase()) ? match : "";
+  });
   // Clean empty paragraphs and excess newlines
   o = o.replace(/<p>\s*<\/p>/gi, "");
   o = o.replace(/\n{4,}/g, "\n\n");
