@@ -86,44 +86,82 @@ function stripHtml(html: string): string {
   return html.replace(/<[^>]*>/g, "").replace(/&[^;]+;/g, " ").trim();
 }
 
-export async function fetchFeed(): Promise<Article[]> {
-  const results = await Promise.allSettled(
-    FEEDS.map(async (feed) => {
-      const res = await fetch(
-        `${RSS_PROXY}${encodeURIComponent(feed.url)}&count=6`
-      );
-      const data = await res.json();
-      if (data.status !== "ok") return [];
+async function fetchSingleFeed(feed: typeof FEEDS[number]): Promise<Article[]> {
+  try {
+    const res = await fetch(
+      `${RSS_PROXY}${encodeURIComponent(feed.url)}&count=5`,
+      { signal: AbortSignal.timeout(8000) }
+    );
+    if (!res.ok) return [];
+    const data = await res.json();
+    if (data.status !== "ok" || !Array.isArray(data.items)) return [];
 
-      return data.items.map((item: any, i: number): Article => ({
-        id: `${feed.source}-${feed.tag}-${i}-${Date.now()}`,
-        title: item.title || "Untitled",
-        url: item.link || item.guid || "",
-        source: feed.source as "devto" | "medium",
-        tag: feed.tag,
-        publishedAt: item.pubDate || new Date().toISOString(),
-        readTime: estimateReadTime(item.content || item.description || ""),
-        cover: item.thumbnail || item.enclosure?.link || undefined,
-        description: stripHtml(item.description || item.content || "").slice(0, 140),
-      }));
-    })
-  );
+    return data.items.map((item: any, i: number): Article => ({
+      id: `${feed.source}-${feed.tag}-${i}-${Date.now()}-${Math.random()}`,
+      title: item.title || "Untitled",
+      url: item.link || item.guid || "",
+      source: feed.source as "devto" | "medium",
+      tag: feed.tag,
+      publishedAt: item.pubDate || new Date().toISOString(),
+      readTime: estimateReadTime(item.content || item.description || ""),
+      cover: item.thumbnail || item.enclosure?.link || undefined,
+      description: stripHtml(item.description || item.content || "").slice(0, 140),
+    }));
+  } catch {
+    return [];
+  }
+}
 
+async function batchFetch(feeds: typeof FEEDS, batchSize = 6, delayMs = 300): Promise<Article[]> {
   const all: Article[] = [];
-  for (const r of results) {
-    if (r.status === "fulfilled") all.push(...r.value);
+  for (let i = 0; i < feeds.length; i += batchSize) {
+    const batch = feeds.slice(i, i + batchSize);
+    const results = await Promise.allSettled(batch.map(fetchSingleFeed));
+    for (const r of results) {
+      if (r.status === "fulfilled") all.push(...r.value);
+    }
+    if (i + batchSize < feeds.length) {
+      await new Promise(res => setTimeout(res, delayMs));
+    }
+  }
+  return all;
+}
+
+export async function fetchFeed(
+  onBatch?: (articles: Article[]) => void
+): Promise<Article[]> {
+  const seen = new Set<string>();
+
+  function dedup(items: Article[]): Article[] {
+    return items.filter((a) => {
+      if (!a.url || !a.title) return false;
+      const key = a.title.toLowerCase().slice(0, 60);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
   }
 
-  // Deduplicate by title, shuffle
-  const seen = new Set<string>();
-  const unique = all.filter((a) => {
-    const key = a.title.toLowerCase().slice(0, 60);
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
+  const all: Article[] = [];
+  const batchSize = 6;
+  const delayMs = 400;
 
-  return unique.sort(() => Math.random() - 0.5);
+  for (let i = 0; i < FEEDS.length; i += batchSize) {
+    const batch = FEEDS.slice(i, i + batchSize);
+    const results = await Promise.allSettled(batch.map(fetchSingleFeed));
+    const fresh: Article[] = [];
+    for (const r of results) {
+      if (r.status === "fulfilled") fresh.push(...r.value);
+    }
+    const unique = dedup(fresh);
+    all.push(...unique);
+    if (onBatch && unique.length > 0) onBatch([...all].sort(() => Math.random() - 0.5));
+    if (i + batchSize < FEEDS.length) {
+      await new Promise(res => setTimeout(res, delayMs));
+    }
+  }
+
+  return all.sort(() => Math.random() - 0.5);
 }
 
 // ─── Article Scraper ──────────────────────────────────────────────────────────

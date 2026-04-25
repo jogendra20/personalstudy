@@ -300,12 +300,14 @@ export default function HomePage() {
   const load = useCallback(async () => {
     setLoading(true);
     setError("");
+    setArticles([]);
     try {
-      const data = await fetchFeed();
-      setArticles(data);
+      await fetchFeed((batch) => {
+        setArticles(batch);
+        setLoading(false); // show cards as soon as first batch arrives
+      });
     } catch {
       setError("Failed to load feed. Check your connection.");
-    } finally {
       setLoading(false);
     }
   }, []);
