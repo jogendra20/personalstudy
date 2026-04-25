@@ -13,155 +13,24 @@ export interface Article {
   description?: string;
 }
 
-// ─── RSS Feeds ────────────────────────────────────────────────────────────────
-const RSS_PROXY = "https://api.rss2json.com/v1/api.json?rss_url=";
+// ─── RSS Feeds (defined in /api/feed/route.ts — server-side) ─────────────────
 
-const FEEDS = [
-  // ── Dev.to ──────────────────────────────────────────────────────────────
-  { url: "https://dev.to/feed/tag/machinelearning",        source: "devto", tag: "ML" },
-  { url: "https://dev.to/feed/tag/deeplearning",           source: "devto", tag: "ML" },
-  { url: "https://dev.to/feed/tag/artificialintelligence", source: "devto", tag: "AI" },
-  { url: "https://dev.to/feed/tag/llm",                   source: "devto", tag: "AI" },
-  { url: "https://dev.to/feed/tag/python",                 source: "devto", tag: "Python" },
-  { url: "https://dev.to/feed/tag/datastructures",         source: "devto", tag: "DSA" },
-  { url: "https://dev.to/feed/tag/algorithms",             source: "devto", tag: "DSA" },
-  { url: "https://dev.to/feed/tag/webdev",                 source: "devto", tag: "Web Dev" },
-  { url: "https://dev.to/feed/tag/nextjs",                 source: "devto", tag: "Web Dev" },
-  { url: "https://dev.to/feed/tag/programming",            source: "devto", tag: "Programming" },
-  { url: "https://dev.to/feed/tag/typescript",             source: "devto", tag: "Programming" },
-  { url: "https://dev.to/feed/tag/systemdesign",           source: "devto", tag: "System Design" },
-  { url: "https://dev.to/feed/tag/database",               source: "devto", tag: "System Design" },
-  { url: "https://dev.to/feed/tag/devops",                 source: "devto", tag: "DevOps" },
-  { url: "https://dev.to/feed/tag/docker",                 source: "devto", tag: "DevOps" },
-  { url: "https://dev.to/feed/tag/linux",                  source: "devto", tag: "Linux" },
-  { url: "https://dev.to/feed/tag/terminal",               source: "devto", tag: "Linux" },
-  { url: "https://dev.to/feed/tag/career",                 source: "devto", tag: "Career" },
-  { url: "https://dev.to/feed/tag/productivity",           source: "devto", tag: "Career" },
-  { url: "https://dev.to/feed/tag/beginners",              source: "devto", tag: "Programming" },
-  { url: "https://dev.to/feed/tag/react",                  source: "devto", tag: "Web Dev" },
-  { url: "https://dev.to/feed/tag/opensource",             source: "devto", tag: "Programming" },
-  { url: "https://dev.to/feed/tag/security",               source: "devto", tag: "Security" },
-  { url: "https://dev.to/feed/tag/api",                    source: "devto", tag: "System Design" },
-  { url: "https://dev.to/feed/tag/agentai",                source: "devto", tag: "AI" },
-
-  // ── Medium ───────────────────────────────────────────────────────────────
-  { url: "https://medium.com/feed/tag/machine-learning",        source: "medium", tag: "ML" },
-  { url: "https://medium.com/feed/tag/deep-learning",           source: "medium", tag: "ML" },
-  { url: "https://medium.com/feed/tag/neural-networks",         source: "medium", tag: "ML" },
-  { url: "https://medium.com/feed/tag/artificial-intelligence", source: "medium", tag: "AI" },
-  { url: "https://medium.com/feed/tag/llm",                     source: "medium", tag: "AI" },
-  { url: "https://medium.com/feed/tag/chatgpt",                 source: "medium", tag: "AI" },
-  { url: "https://medium.com/feed/tag/python",                  source: "medium", tag: "Python" },
-  { url: "https://medium.com/feed/tag/data-science",            source: "medium", tag: "ML" },
-  { url: "https://medium.com/feed/tag/data-structures",         source: "medium", tag: "DSA" },
-  { url: "https://medium.com/feed/tag/algorithms",              source: "medium", tag: "DSA" },
-  { url: "https://medium.com/feed/tag/leetcode",                source: "medium", tag: "DSA" },
-  { url: "https://medium.com/feed/tag/system-design",           source: "medium", tag: "System Design" },
-  { url: "https://medium.com/feed/tag/software-architecture",   source: "medium", tag: "System Design" },
-  { url: "https://medium.com/feed/tag/web-development",         source: "medium", tag: "Web Dev" },
-  { url: "https://medium.com/feed/tag/programming",             source: "medium", tag: "Programming" },
-  { url: "https://medium.com/feed/tag/software-engineering",    source: "medium", tag: "Programming" },
-  { url: "https://medium.com/feed/tag/devops",                  source: "medium", tag: "DevOps" },
-  { url: "https://medium.com/feed/tag/linux",                   source: "medium", tag: "Linux" },
-  { url: "https://medium.com/feed/tag/trading",                 source: "medium", tag: "Trading" },
-  { url: "https://medium.com/feed/tag/algorithmic-trading",     source: "medium", tag: "Trading" },
-  { url: "https://medium.com/feed/tag/stock-market",            source: "medium", tag: "Trading" },
-  { url: "https://medium.com/feed/tag/career",                  source: "medium", tag: "Career" },
-  { url: "https://medium.com/feed/tag/productivity",            source: "medium", tag: "Career" },
-  { url: "https://medium.com/feed/tag/cybersecurity",           source: "medium", tag: "Security" },
-  { url: "https://medium.com/feed/tag/reinforcement-learning",  source: "medium", tag: "ML" },
-  { url: "https://medium.com/feed/tag/natural-language-processing", source: "medium", tag: "ML" },
-  { url: "https://medium.com/feed/tag/open-source",             source: "medium", tag: "Programming" },
-  { url: "https://medium.com/feed/tag/fastapi",                 source: "medium", tag: "Python" },
-  { url: "https://medium.com/feed/tag/interview",               source: "medium", tag: "Career" },
-] as const;
-
-function estimateReadTime(text: string): string {
-  const words = text.replace(/<[^>]*>/g, "").split(/\s+/).length;
-  const mins = Math.max(1, Math.round(words / 200));
-  return `${mins} min read`;
-}
+// ─── Feed ─────────────────────────────────────────────────────────────────────
 
 function stripHtml(html: string): string {
   return html.replace(/<[^>]*>/g, "").replace(/&[^;]+;/g, " ").trim();
 }
 
-async function fetchSingleFeed(feed: typeof FEEDS[number]): Promise<Article[]> {
-  try {
-    const res = await fetch(
-      `${RSS_PROXY}${encodeURIComponent(feed.url)}&count=5`,
-      { signal: AbortSignal.timeout(8000) }
-    );
-    if (!res.ok) return [];
-    const data = await res.json();
-    if (data.status !== "ok" || !Array.isArray(data.items)) return [];
-
-    return data.items.map((item: any, i: number): Article => ({
-      id: `${feed.source}-${feed.tag}-${i}-${Date.now()}-${Math.random()}`,
-      title: item.title || "Untitled",
-      url: item.link || item.guid || "",
-      source: feed.source as "devto" | "medium",
-      tag: feed.tag,
-      publishedAt: item.pubDate || new Date().toISOString(),
-      readTime: estimateReadTime(item.content || item.description || ""),
-      cover: item.thumbnail || item.enclosure?.link || undefined,
-      description: stripHtml(item.description || item.content || "").slice(0, 140),
-    }));
-  } catch {
-    return [];
-  }
-}
-
-async function batchFetch(feeds: typeof FEEDS, batchSize = 6, delayMs = 300): Promise<Article[]> {
-  const all: Article[] = [];
-  for (let i = 0; i < feeds.length; i += batchSize) {
-    const batch = feeds.slice(i, i + batchSize);
-    const results = await Promise.allSettled(batch.map(fetchSingleFeed));
-    for (const r of results) {
-      if (r.status === "fulfilled") all.push(...r.value);
-    }
-    if (i + batchSize < feeds.length) {
-      await new Promise(res => setTimeout(res, delayMs));
-    }
-  }
-  return all;
-}
-
 export async function fetchFeed(
   onBatch?: (articles: Article[]) => void
 ): Promise<Article[]> {
-  const seen = new Set<string>();
-
-  function dedup(items: Article[]): Article[] {
-    return items.filter((a) => {
-      if (!a.url || !a.title) return false;
-      const key = a.title.toLowerCase().slice(0, 60);
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
-  }
-
-  const all: Article[] = [];
-  const batchSize = 6;
-  const delayMs = 400;
-
-  for (let i = 0; i < FEEDS.length; i += batchSize) {
-    const batch = FEEDS.slice(i, i + batchSize);
-    const results = await Promise.allSettled(batch.map(fetchSingleFeed));
-    const fresh: Article[] = [];
-    for (const r of results) {
-      if (r.status === "fulfilled") fresh.push(...r.value);
-    }
-    const unique = dedup(fresh);
-    all.push(...unique);
-    if (onBatch && unique.length > 0) onBatch([...all].sort(() => Math.random() - 0.5));
-    if (i + batchSize < FEEDS.length) {
-      await new Promise(res => setTimeout(res, delayMs));
-    }
-  }
-
-  return all.sort(() => Math.random() - 0.5);
+  const res = await fetch("/api/feed");
+  if (!res.ok) throw new Error("Feed fetch failed");
+  const articles: Article[] = await res.json();
+  // Add IDs (not stored server-side)
+  const tagged = articles.map((a, i) => ({ ...a, id: `${a.source}-${i}-${Date.now()}` }));
+  if (onBatch) onBatch(tagged);
+  return tagged;
 }
 
 // ─── Article Scraper ──────────────────────────────────────────────────────────
