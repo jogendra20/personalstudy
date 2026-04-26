@@ -96,7 +96,7 @@ function buildCleanHtml(raw: string): string {
   // Strip leading author junk — <a> tags, empty elements before first real content
   body = body.replace(/^(\s*<a[\s\S]*?<\/a>\s*|\s*<img[^>]*\/>\s*)+/i, "");
   // Strip "X min read·Just now" type text at very start
-  body = body.replace(/^[\s\d\w·,\-]+(?:min read|just now|hours? ago|days? ago)[^
+  body = body.replace(/^[\s\d\w\u00B7,\-]+(min read|just now|\d+ hours? ago|\d+ days? ago).*/im, "");
 ]*/im, "");
 
   // 3. Pre/code blocks — handle FIRST before anything else
