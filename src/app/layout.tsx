@@ -29,7 +29,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
       <meta name="apple-mobile-web-app-title" content="Onyx" />
     </head>
-      <body>{children}</body>
+      <body>{children}<script dangerouslySetInnerHTML={{ __html: `
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js');
+      });
+    }
+  ` }} />
+  </body>
     </html>
   );
 }
