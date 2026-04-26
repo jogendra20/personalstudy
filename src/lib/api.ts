@@ -21,14 +21,51 @@ function stripHtml(html: string): string {
   return html.replace(/<[^>]*>/g, "").replace(/&[^;]+;/g, " ").trim();
 }
 
+const FEED_CACHE_KEY = "onyx_feed_cache";
+const FEED_CACHE_TS_KEY = "onyx_feed_ts";
+const FEED_STALE_MS = 5 * 60 * 1000;
+
+function loadCachedFeed(): Article[] | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const ts = parseInt(localStorage.getItem(FEED_CACHE_TS_KEY) || "0");
+    if (Date.now() - ts > FEED_STALE_MS) return null;
+    const raw = localStorage.getItem(FEED_CACHE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch { return null; }
+}
+
+function saveFeedCache(articles: Article[]): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(FEED_CACHE_KEY, JSON.stringify(articles));
+    localStorage.setItem(FEED_CACHE_TS_KEY, Date.now().toString());
+  } catch {}
+}
+
+export function clearFeedCache(): void {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(FEED_CACHE_KEY);
+  localStorage.removeItem(FEED_CACHE_TS_KEY);
+}
+
 export async function fetchFeed(
-  onBatch?: (articles: Article[]) => void
+  onBatch?: (articles: Article[]) => void,
+  forceRefresh = false
 ): Promise<Article[]> {
+  if (!forceRefresh) {
+    const cached = loadCachedFeed();
+    if (cached && cached.length > 0) {
+      if (onBatch) onBatch(cached);
+      return cached;
+    }
+  }
   const res = await fetch(`/api/feed?t=${Date.now()}`);
   if (!res.ok) throw new Error("Feed fetch failed");
   const articles: Article[] = await res.json();
-  // Add IDs (not stored server-side)
   const tagged = articles.map((a, i) => ({ ...a, id: `${a.source}-${i}-${Date.now()}` }));
+  saveFeedCache(tagged);
   if (onBatch) onBatch(tagged);
   return tagged;
 }
