@@ -37,17 +37,6 @@ function isPaywalled(html: string): boolean {
   );
 }
 
-function isPaywalled(html: string): boolean {
-  return (
-    html.includes("Get unlimited access") ||
-    html.includes("Members-only story") ||
-    html.includes("Member-only story") ||
-    html.includes("memberOnly") ||
-    html.includes("member_only") ||
-    (html.includes("/plans?") && html.includes("Get started"))
-  );
-}
-
 async function tryFetch(url: string): Promise<string> {
   const HEADERS = {
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
