@@ -23,13 +23,12 @@ function extractBody(html: string): string {
     html.match(/<article[^>]*>([\s\S]*?)<\/article>/i),
     html.match(/<main[^>]*>([\s\S]*?)<\/main>/i),
     html.match(/<div[^>]*class="[^"]*(?:post|article|entry|content|story)[^"]*"[^>]*>([\s\S]*?)<\/div>/i),
+    html.match(/<body[^>]*>([\s\S]*?)<\/body>/i),
   ];
   for (const m of attempts) {
     if (m?.[1] && m[1].length > 300) return m[1];
   }
-  // Last resort: everything between body tags
-  const body = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
-  return body?.[1] || html;
+  return html;
 }
 
 const ALLOWED = new Set([
@@ -63,55 +62,83 @@ function sanitizeContent(html: string): string {
     });
 }
 
-async function fetchViaProxy(targetUrl: string): Promise<string> {
-  const proxies = [
-    // Proxy 1: allorigins
+function isMediumDomain(url: string): boolean {
+  try {
+    const host = new URL(url).hostname;
+    return host === "medium.com" || host.endsWith(".medium.com");
+  } catch { return false; }
+}
+
+function isMediumSubpub(url: string): boolean {
+  // e.g. python.plainenglish.io, towardsdatascience.com, betterprogramming.pub
+  try {
+    const host = new URL(url).hostname;
+    const SUBPUBS = [
+      "towardsdatascience.com","betterprogramming.pub","plainenglish.io",
+      "javascript.plainenglish.io","python.plainenglish.io","levelup.gitconnected.com",
+      "itnext.io","codeburst.io","hackernoon.com","blog.devgenius.io",
+    ];
+    return SUBPUBS.some(d => host === d || host.endsWith("." + d));
+  } catch { return false; }
+}
+
+async function tryFetch(url: string): Promise<string> {
+  const HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.5",
+  };
+
+  const strategies: (() => Promise<string>)[] = [
+    // 1. Direct fetch
     async () => {
-      const r = await fetch(
-        `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`,
-        { signal: AbortSignal.timeout(8000) }
-      );
-      if (!r.ok) throw new Error("allorigins failed");
-      const d = await r.json();
-      if (!d.contents) throw new Error("allorigins empty");
-      return d.contents as string;
+      const r = await fetch(url, { headers: HEADERS, signal: AbortSignal.timeout(8000) });
+      if (!r.ok) throw new Error(`Direct ${r.status}`);
+      return r.text();
     },
-    // Proxy 2: corsproxy.io
+    // 2. allorigins
     async () => {
-      const r = await fetch(
-        `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`,
-        {
-          headers: { "User-Agent": "Mozilla/5.0 (compatible; Onyx/1.0)" },
-          signal: AbortSignal.timeout(8000),
-        }
-      );
-      if (!r.ok) throw new Error("corsproxy failed");
-      return await r.text();
-    },
-    // Proxy 3: direct fetch (works for dev.to, fails for Medium)
-    async () => {
-      const r = await fetch(targetUrl, {
-        headers: {
-          "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-          "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-          "Accept-Language": "en-US,en;q=0.5",
-        },
+      const r = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`, {
         signal: AbortSignal.timeout(8000),
       });
-      if (!r.ok) throw new Error(`Direct fetch failed: ${r.status}`);
-      return await r.text();
+      if (!r.ok) throw new Error(`allorigins ${r.status}`);
+      const d = await r.json();
+      if (!d.contents || d.contents.length < 200) throw new Error("allorigins empty");
+      return d.contents;
+    },
+    // 3. corsproxy.io
+    async () => {
+      const r = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`, {
+        headers: HEADERS,
+        signal: AbortSignal.timeout(8000),
+      });
+      if (!r.ok) throw new Error(`corsproxy ${r.status}`);
+      return r.text();
+    },
+    // 4. Freedium (Medium paywall bypass) — last resort for medium.com
+    async () => {
+      if (!isMediumDomain(url)) throw new Error("not medium");
+      const freediumUrl = `https://freedium.cfd/${url}`;
+      const r = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(freediumUrl)}`, {
+        signal: AbortSignal.timeout(10000),
+      });
+      if (!r.ok) throw new Error(`freedium ${r.status}`);
+      const d = await r.json();
+      if (!d.contents || d.contents.length < 200) throw new Error("freedium empty");
+      return d.contents;
     },
   ];
 
-  for (const proxy of proxies) {
+  const errors: string[] = [];
+  for (const strategy of strategies) {
     try {
-      const html = await proxy();
+      const html = await strategy();
       if (html && html.length > 200) return html;
-    } catch {
-      // try next proxy
+    } catch (e: any) {
+      errors.push(e.message);
     }
   }
-  throw new Error("All proxies failed");
+  throw new Error(`All strategies failed: ${errors.join(" | ")}`);
 }
 
 export async function GET(req: NextRequest) {
@@ -122,39 +149,36 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "No URL provided" }, { status: 400 });
   }
 
-  const isMedium = url.includes("medium.com");
+  const isFromMedium = isMediumDomain(url) || isMediumSubpub(url);
   const isDevTo = url.includes("dev.to");
 
-  // Use Freedium for Medium to bypass paywall
-  const targetUrl = isMedium ? `https://freedium.cfd/${url}` : url;
-
   try {
-    const raw = await fetchViaProxy(targetUrl);
+    const raw = await tryFetch(url);
 
     const titleMatch = raw.match(/<title[^>]*>([^<]+)<\/title>/i);
     const title = (titleMatch?.[1] || "Article")
-      .replace(/\s*[|\-–—]\s*(Medium|DEV Community|dev\.to|Freedium).*$/i, "")
+      .replace(/\s*[|\-–—]\s*(Medium|DEV Community|dev\.to|Freedium|plainenglish\.io|towards[^<]*).*$/i, "")
       .trim();
 
     const cleaned = cleanHtml(raw);
     const body = extractBody(cleaned);
     const content = sanitizeContent(body);
     const textContent = stripHtml(body).slice(0, 3000);
-    const siteName = isMedium
-      ? "Medium"
-      : isDevTo
-      ? "DEV Community"
-      : new URL(url).hostname;
+
+    let siteName = "Article";
+    if (isMediumDomain(url)) siteName = "Medium";
+    else if (isMediumSubpub(url)) siteName = "Medium";
+    else if (isDevTo) siteName = "DEV Community";
+    else {
+      try { siteName = new URL(url).hostname.replace("www.", ""); } catch {}
+    }
 
     return NextResponse.json(
       { title, content, textContent, siteName },
-      {
-        headers: {
-          "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=7200",
-        },
-      }
+      { headers: { "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=7200" } }
     );
   } catch (err: any) {
+    // Return the detailed error so we can debug
     return NextResponse.json(
       { error: err.message || "Scrape failed" },
       { status: 500 }
