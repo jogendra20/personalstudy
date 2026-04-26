@@ -44,35 +44,36 @@ async function tryFetch(url: string): Promise<string> {
   const freediumUrl = `https://freedium.cfd/${url}`;
 
   // Run all proxies in parallel, return first usable result
-  const race = await Promise.allSettled([
+  const fetches = [
     // 1. Direct fetch
-    fetch(url, { headers: HEADERS, signal: AbortSignal.timeout(6000) })
-      .then(r => r.ok ? r.text() : Promise.reject(`direct ${r.status}`)),
+    fetch(url, { headers: HEADERS, signal: AbortSignal.timeout(5000) })
+      .then(r => r.ok ? r.text() : Promise.reject(`direct ${r.status}`))
+      .then(h => { if (!isUsableHtml(h)) throw new Error("unusable"); return h; }),
     // 2. allorigins
     fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`, {
-      signal: AbortSignal.timeout(6000),
-    }).then(r => r.json()).then(d => d.contents || Promise.reject("empty")),
+      signal: AbortSignal.timeout(5000),
+    }).then(r => r.json()).then(d => {
+      if (!d.contents || !isUsableHtml(d.contents)) throw new Error("unusable");
+      return d.contents;
+    }),
     // 3. corsproxy
     fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`, {
-      headers: HEADERS, signal: AbortSignal.timeout(6000),
-    }).then(r => r.ok ? r.text() : Promise.reject(`corsproxy ${r.status}`)),
+      headers: HEADERS, signal: AbortSignal.timeout(5000),
+    }).then(r => r.ok ? r.text() : Promise.reject(`corsproxy ${r.status}`))
+      .then(h => { if (!isUsableHtml(h)) throw new Error("unusable"); return h; }),
     // 4. Freedium — Medium only
     ...(isMedium ? [
-      fetch(freediumUrl, { headers: HEADERS, signal: AbortSignal.timeout(8000) })
-        .then(r => r.ok ? r.text() : Promise.reject(`freedium ${r.status}`)),
+      fetch(freediumUrl, { headers: HEADERS, signal: AbortSignal.timeout(6000) })
+        .then(r => r.ok ? r.text() : Promise.reject(`freedium ${r.status}`))
+        .then(h => { if (!isUsableHtml(h)) throw new Error("unusable"); return h; }),
     ] : []),
-  ]);
+  ];
 
-  // Pick best result — longest usable html wins
-  let best = "";
-  for (const r of race) {
-    if (r.status === "fulfilled" && isUsableHtml(r.value) && r.value.length > best.length) {
-      best = r.value;
-    }
+  try {
+    return await Promise.any(fetches);
+  } catch {
+    throw new Error("All proxies failed or returned unusable content");
   }
-
-  if (best) return best;
-  throw new Error("All proxies failed or returned unusable content");
 }
 
 function buildCleanHtml(raw: string): string {
