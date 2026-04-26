@@ -6,7 +6,7 @@ function stripHtml(html: string): string {
   return html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
 }
 
-function cleanHtml(html: string): string {
+function removeJunk(html: string): string {
   return html
     .replace(/<script[\s\S]*?<\/script>/gi, "")
     .replace(/<style[\s\S]*?<\/style>/gi, "")
@@ -15,78 +15,125 @@ function cleanHtml(html: string): string {
     .replace(/<footer[\s\S]*?<\/footer>/gi, "")
     .replace(/<aside[\s\S]*?<\/aside>/gi, "")
     .replace(/<form[\s\S]*?<\/form>/gi, "")
-    .replace(/<!--[\s\S]*?-->/g, "");
+    .replace(/<!--[\s\S]*?-->/g, "")
+    // Medium specific junk
+    .replace(/<div[^>]*data-testid="headerSocialRow"[\s\S]*?<\/div>/gi, "")
+    .replace(/<div[^>]*class="[^"]*metabar[^"]*"[\s\S]*?<\/div>/gi, "")
+    // Remove "Press enter or click to view image in full size" text
+    .replace(/Press enter or click to view image in full size/gi, "")
+    // Remove Listen / Share / Follow UI
+    .replace(/<button[\s\S]*?<\/button>/gi, "")
+    .replace(/<svg[\s\S]*?<\/svg>/gi, "");
 }
 
 function extractBody(html: string): string {
-  const attempts = [
-    html.match(/<article[^>]*>([\s\S]*?)<\/article>/i),
-    html.match(/<main[^>]*>([\s\S]*?)<\/main>/i),
-    html.match(/<div[^>]*class="[^"]*(?:post|article|entry|content|story)[^"]*"[^>]*>([\s\S]*?)<\/div>/i),
-    html.match(/<body[^>]*>([\s\S]*?)<\/body>/i),
-  ];
-  for (const m of attempts) {
-    if (m?.[1] && m[1].length > 300) return m[1];
-  }
-  return html;
+  // Medium article body is in <article> tag
+  const article = html.match(/<article[^>]*>([\s\S]*?)<\/article>/i);
+  if (article?.[1] && article[1].length > 500) return article[1];
+
+  const main = html.match(/<main[^>]*>([\s\S]*?)<\/main>/i);
+  if (main?.[1] && main[1].length > 500) return main[1];
+
+  // Dev.to uses specific class
+  const devto = html.match(/class="[^"]*crayons-article__body[^"]*"[^>]*>([\s\S]*?)<\/div>/i);
+  if (devto?.[1] && devto[1].length > 300) return devto[1];
+
+  const body = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+  return body?.[1] || html;
 }
 
-function sanitizeContent(html: string): string {
+function fixImages(html: string): string {
+  // Priority: data-src > src — Medium uses data-src for lazy loading
+  // Also handle <source srcset> inside <picture>
   let out = html;
 
-  // 1. Fix images — recover src from data-src (lazy loaded)
-  out = out.replace(/<img[^>]*?data-src="([^"]+)"[^>]*>/gi, '<img src="$1" loading="lazy" style="max-width:100%;border-radius:8px;margin:1.5rem auto;display:block;" />');
-  out = out.replace(/<img[^>]*?src="([^"]+)"[^>]*>/gi, '<img src="$1" loading="lazy" style="max-width:100%;border-radius:8px;margin:1.5rem auto;display:block;" />');
-
-  // 2. Fix code blocks — preserve pre/code content exactly
-  out = out.replace(/<pre[^>]*>([\s\S]*?)<\/pre>/gi, (_, inner) => {
-    const code = inner.replace(/<code[^>]*>([\s\S]*?)<\/code>/gi, "$1");
-    return `<pre>${code}</pre>`;
+  // Picture elements — extract best src
+  out = out.replace(/<picture[^>]*>([\s\S]*?)<\/picture>/gi, (_, inner) => {
+    const srcset = inner.match(/srcset="([^"]+)"/i)?.[1];
+    const src = inner.match(/src="([^"]+)"/i)?.[1];
+    const best = srcset ? srcset.split(",")[0].trim().split(" ")[0] : src;
+    if (!best) return "";
+    return `<img src="${best}" loading="lazy" />`;
   });
 
-  // 3. Inline code
-  out = out.replace(/<code[^>]*>([\s\S]*?)<\/code>/gi, "<code>$1</code>");
+  // Regular img — prefer data-src over src
+  out = out.replace(/<img([^>]*)>/gi, (_, attrs) => {
+    const dataSrc = attrs.match(/data-src="([^"]+)"/i)?.[1];
+    const src = attrs.match(/\bsrc="([^"]+)"/i)?.[1];
+    const alt = attrs.match(/alt="([^"]*)"/i)?.[1] || "";
+    const finalSrc = dataSrc || src;
+    if (!finalSrc) return "";
+    // Skip tiny images (avatars, icons, tracking pixels)
+    if (finalSrc.includes("avatar") || finalSrc.includes("icon") || finalSrc.includes("1x1") || finalSrc.includes("badge")) return "";
+    return `<img src="${finalSrc}" alt="${alt}" loading="lazy" />`;
+  });
 
-  // 4. Headings
-  out = out.replace(/<h1[^>]*>([\s\S]*?)<\/h1>/gi, "<h1>$1</h1>");
-  out = out.replace(/<h2[^>]*>([\s\S]*?)<\/h2>/gi, "<h2>$1</h2>");
-  out = out.replace(/<h3[^>]*>([\s\S]*?)<\/h3>/gi, "<h3>$1</h3>");
-  out = out.replace(/<h4[^>]*>([\s\S]*?)<\/h4>/gi, "<h4>$1</h4>");
+  return out;
+}
 
-  // 5. Paragraphs
+function buildCleanHtml(html: string): string {
+  let out = fixImages(html);
+
+  // Code blocks — must do BEFORE stripping tags
+  out = out.replace(/<pre[^>]*>([\s\S]*?)<\/pre>/gi, (_, inner) => {
+    // Strip all tags inside pre except keep text
+    const text = inner
+      .replace(/<code[^>]*>([\s\S]*?)<\/code>/gi, "$1")
+      .replace(/<[^>]+>/g, "")
+      .replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&").replace(/&quot;/g, '"');
+    return `<pre><code>${text}</code></pre>`;
+  });
+
+  // Inline code
+  out = out.replace(/<code[^>]*>([\s\S]*?)<\/code>/gi, (_, inner) => {
+    const text = inner.replace(/<[^>]+>/g, "");
+    return `<code>${text}</code>`;
+  });
+
+  // Headings
+  for (let i = 1; i <= 4; i++) {
+    out = out.replace(new RegExp(`<h${i}[^>]*>([\\s\\S]*?)<\/h${i}>`, "gi"), `<h${i}>$1</h${i}>`);
+  }
+
+  // Paragraphs
   out = out.replace(/<p[^>]*>([\s\S]*?)<\/p>/gi, "<p>$1</p>");
 
-  // 6. Formatting
+  // Formatting
   out = out.replace(/<strong[^>]*>([\s\S]*?)<\/strong>/gi, "<strong>$1</strong>");
   out = out.replace(/<b[^>]*>([\s\S]*?)<\/b>/gi, "<strong>$1</strong>");
   out = out.replace(/<em[^>]*>([\s\S]*?)<\/em>/gi, "<em>$1</em>");
   out = out.replace(/<i[^>]*>([\s\S]*?)<\/i>/gi, "<em>$1</em>");
 
-  // 7. Blockquote
+  // Blockquote
   out = out.replace(/<blockquote[^>]*>([\s\S]*?)<\/blockquote>/gi, "<blockquote>$1</blockquote>");
 
-  // 8. Lists
+  // Lists
   out = out.replace(/<ul[^>]*>([\s\S]*?)<\/ul>/gi, "<ul>$1</ul>");
   out = out.replace(/<ol[^>]*>([\s\S]*?)<\/ol>/gi, "<ol>$1</ol>");
   out = out.replace(/<li[^>]*>([\s\S]*?)<\/li>/gi, "<li>$1</li>");
 
-  // 9. Links
-  out = out.replace(/<a[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi,
+  // Links
+  out = out.replace(/<a[^>]*href="([^"#][^"]*)"[^>]*>([\s\S]*?)<\/a>/gi,
     '<a href="$1" target="_blank" rel="noopener noreferrer">$2</a>');
 
-  // 10. Breaks and dividers
-  out = out.replace(/<br\s*\/?>/gi, "<br/>");
-  out = out.replace(/<hr[^>]*>/gi, "<hr/>");
-
-  // 11. Figure / caption
+  // Figure / caption
   out = out.replace(/<figure[^>]*>([\s\S]*?)<\/figure>/gi, "<figure>$1</figure>");
   out = out.replace(/<figcaption[^>]*>([\s\S]*?)<\/figcaption>/gi, "<figcaption>$1</figcaption>");
 
-  // 12. Strip remaining unknown tags but keep their inner content
-  out = out.replace(/<(?!\/?(h[1-6]|p|strong|em|code|pre|blockquote|a|img|br|hr|ul|ol|li|figure|figcaption)\b)[a-z][a-z0-9]*[^>]*>/gi, "");
-  out = out.replace(/<\/(?!h[1-6]|p|strong|em|code|pre|blockquote|a|img|ul|ol|li|figure|figcaption\b)[a-z][a-z0-9]*>/gi, "");
+  // Breaks and hr
+  out = out.replace(/<br\s*\/?>/gi, "<br/>");
+  out = out.replace(/<hr[^>]*>/gi, "<hr/>");
 
-  // 13. Clean up excess whitespace
+  // Strip all remaining unknown tags but keep their content
+  const keep = "h1|h2|h3|h4|p|strong|em|code|pre|blockquote|a|img|br|hr|ul|ol|li|figure|figcaption";
+  out = out.replace(new RegExp(`<(?!\\/?(?:${keep})\\b)[a-z][a-z0-9]*[^>]*>`, "gi"), "");
+  out = out.replace(new RegExp(`<\\/(?!(?:${keep})\\b)[a-z][a-z0-9]*>`, "gi"), "");
+
+  // Decode HTML entities
+  out = out.replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<")
+           .replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+
+  // Clean up whitespace
   out = out.replace(/(<br\/>\s*){3,}/gi, "<br/><br/>");
   out = out.replace(/\n{3,}/g, "\n\n");
 
@@ -104,9 +151,9 @@ function isMediumSubpub(url: string): boolean {
   try {
     const host = new URL(url).hostname;
     const SUBPUBS = [
-      "towardsdatascience.com","betterprogramming.pub","plainenglish.io",
-      "javascript.plainenglish.io","python.plainenglish.io","levelup.gitconnected.com",
-      "itnext.io","codeburst.io","hackernoon.com","blog.devgenius.io",
+      "towardsdatascience.com", "betterprogramming.pub", "plainenglish.io",
+      "javascript.plainenglish.io", "python.plainenglish.io", "levelup.gitconnected.com",
+      "itnext.io", "codeburst.io", "hackernoon.com", "blog.devgenius.io",
     ];
     return SUBPUBS.some(d => host === d || host.endsWith("." + d));
   } catch { return false; }
@@ -136,18 +183,17 @@ async function tryFetch(url: string): Promise<string> {
     },
     async () => {
       const r = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`, {
-        headers: HEADERS,
-        signal: AbortSignal.timeout(8000),
+        headers: HEADERS, signal: AbortSignal.timeout(8000),
       });
       if (!r.ok) throw new Error(`corsproxy ${r.status}`);
       return r.text();
     },
     async () => {
       if (!isMediumDomain(url)) throw new Error("not medium");
-      const freediumUrl = `https://freedium.cfd/${url}`;
-      const r = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(freediumUrl)}`, {
-        signal: AbortSignal.timeout(10000),
-      });
+      const r = await fetch(
+        `https://api.allorigins.win/get?url=${encodeURIComponent("https://freedium.cfd/" + url)}`,
+        { signal: AbortSignal.timeout(10000) }
+      );
       if (!r.ok) throw new Error(`freedium ${r.status}`);
       const d = await r.json();
       if (!d.contents || d.contents.length < 200) throw new Error("freedium empty");
@@ -156,9 +202,9 @@ async function tryFetch(url: string): Promise<string> {
   ];
 
   const errors: string[] = [];
-  for (const strategy of strategies) {
+  for (const s of strategies) {
     try {
-      const html = await strategy();
+      const html = await s();
       if (html && html.length > 200) return html;
     } catch (e: any) {
       errors.push(e.message);
@@ -170,13 +216,7 @@ async function tryFetch(url: string): Promise<string> {
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const url = searchParams.get("url") || "";
-
-  if (!url) {
-    return NextResponse.json({ error: "No URL provided" }, { status: 400 });
-  }
-
-  const isFromMedium = isMediumDomain(url) || isMediumSubpub(url);
-  const isDevTo = url.includes("dev.to");
+  if (!url) return NextResponse.json({ error: "No URL" }, { status: 400 });
 
   try {
     const raw = await tryFetch(url);
@@ -186,27 +226,22 @@ export async function GET(req: NextRequest) {
       .replace(/\s*[|\-–—]\s*(Medium|DEV Community|dev\.to|Freedium|plainenglish\.io|towards[^<]*).*$/i, "")
       .trim();
 
-    const cleaned = cleanHtml(raw);
-    const body = extractBody(cleaned);
-    const content = sanitizeContent(body);
+    const noJunk = removeJunk(raw);
+    const body = extractBody(noJunk);
+    const content = buildCleanHtml(body);
     const textContent = stripHtml(body).slice(0, 3000);
 
     let siteName = "Article";
     if (isMediumDomain(url)) siteName = "Medium";
     else if (isMediumSubpub(url)) siteName = "Medium";
-    else if (isDevTo) siteName = "DEV Community";
-    else {
-      try { siteName = new URL(url).hostname.replace("www.", ""); } catch {}
-    }
+    else if (url.includes("dev.to")) siteName = "DEV Community";
+    else { try { siteName = new URL(url).hostname.replace("www.", ""); } catch {} }
 
     return NextResponse.json(
       { title, content, textContent, siteName },
       { headers: { "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=7200" } }
     );
   } catch (err: any) {
-    return NextResponse.json(
-      { error: err.message || "Scrape failed" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
