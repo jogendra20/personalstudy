@@ -44,44 +44,14 @@ async function tryFetch(url: string): Promise<string> {
     "Accept-Language": "en-US,en;q=0.5",
   };
 
-  const isMedium = isMediumDomain(url) || isMediumSubpub(url);
-
-  // For Medium, go straight to Freedium — most articles are paywalled anyway
-  if (isMedium) {
-    const freediumUrl = `https://freedium.cfd/${url}`;
-    try {
-      const r = await fetch(
-        `https://api.allorigins.win/get?url=${encodeURIComponent(freediumUrl)}`,
-        { signal: AbortSignal.timeout(12000) }
-      );
-      if (r.ok) {
-        const d = await r.json();
-        if (d.contents && d.contents.length > 500) return d.contents;
-      }
-    } catch {}
-
-    // Freedium failed — try corsproxy with freedium
-    try {
-      const r = await fetch(`https://corsproxy.io/?${encodeURIComponent(freediumUrl)}`, {
-        headers: HEADERS, signal: AbortSignal.timeout(10000),
-      });
-      if (r.ok) {
-        const text = await r.text();
-        if (text.length > 500) return text;
-      }
-    } catch {}
-  }
-
-  // For non-Medium or Freedium failed: direct fetch
   const strategies: (() => Promise<string>)[] = [
+    // 1. Direct fetch — works for most articles including Medium
     async () => {
       const r = await fetch(url, { headers: HEADERS, signal: AbortSignal.timeout(8000) });
       if (!r.ok) throw new Error(`Direct ${r.status}`);
-      const text = await r.text();
-      // If paywalled, throw so we try next
-      if (isMedium && isPaywalled(text)) throw new Error("paywalled");
-      return text;
+      return r.text();
     },
+    // 2. allorigins proxy
     async () => {
       const r = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`, {
         signal: AbortSignal.timeout(8000),
@@ -89,9 +59,9 @@ async function tryFetch(url: string): Promise<string> {
       if (!r.ok) throw new Error(`allorigins ${r.status}`);
       const d = await r.json();
       if (!d.contents || d.contents.length < 200) throw new Error("allorigins empty");
-      if (isMedium && isPaywalled(d.contents)) throw new Error("paywalled");
       return d.contents;
     },
+    // 3. corsproxy
     async () => {
       const r = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`, {
         headers: HEADERS, signal: AbortSignal.timeout(8000),
