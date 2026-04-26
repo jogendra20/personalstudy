@@ -93,6 +93,12 @@ function buildCleanHtml(raw: string): string {
 
   let body = article || html;
 
+  // Strip leading author junk — <a> tags, empty elements before first real content
+  body = body.replace(/^(\s*<a[\s\S]*?<\/a>\s*|\s*<img[^>]*\/>\s*)+/i, "");
+  // Strip "X min read·Just now" type text at very start
+  body = body.replace(/^[\s\d\w·,\-]+(?:min read|just now|hours? ago|days? ago)[^
+]*/im, "");
+
   // 3. Pre/code blocks — handle FIRST before anything else
   body = body.replace(/<pre[^>]*>([\s\S]*?)<\/pre>/gi, (_, inner) => {
     const text = inner
@@ -209,7 +215,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(
       { title, content, textContent, siteName },
-      { headers: { "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=7200" } }
+      { headers: { "Cache-Control": "public, s-maxage=86400, stale-while-revalidate=604800" } }
     );
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
