@@ -229,6 +229,10 @@ export async function GET(req: NextRequest) {
     else if (isDevTo) siteName = "DEV Community";
     else { try { siteName = new URL(url).hostname.replace("www.", ""); } catch {} }
 
+    }
+
+    const content = buildCleanHtml(raw);
+    const textContent = stripHtml(content).slice(0, 3000);
     // Check if paywalled — return special flag instead of broken content
     if (isFromMedium && isPaywalled(raw)) {
       const freediumUrl = "https://freedium.cfd/" + url;
@@ -248,10 +252,6 @@ export async function GET(req: NextRequest) {
         },
         { headers: { "Cache-Control": "public, s-maxage=300" } }
       );
-    }
-
-    const content = buildCleanHtml(raw);
-    const textContent = stripHtml(content).slice(0, 3000);
 
     return NextResponse.json(
       { title, content, textContent, siteName },
