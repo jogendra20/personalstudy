@@ -69,11 +69,17 @@ async function tryFetch(url: string): Promise<string> {
     ] : []),
   ];
 
-  try {
-    return await Promise.any(fetches);
-  } catch {
-    throw new Error("All proxies failed or returned unusable content");
-  }
+  // Promise.any polyfill for older TS targets
+  const result = await new Promise<string>((resolve, reject) => {
+    let rejected = 0;
+    fetches.forEach(p =>
+      p.then(resolve).catch(() => {
+        rejected++;
+        if (rejected === fetches.length) reject(new Error("All proxies failed"));
+      })
+    );
+  });
+  return result;
 }
 
 function buildCleanHtml(raw: string): string {
