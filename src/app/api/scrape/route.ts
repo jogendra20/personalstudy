@@ -25,18 +25,6 @@ function isMediumSubpub(url: string): boolean {
   } catch { return false; }
 }
 
-function isPaywalled(html: string): boolean {
-  return (
-    html.includes("member-only") ||
-    html.includes("memberOnly") ||
-    html.includes("paywall") ||
-    html.includes("/plans?") ||
-    html.includes("Get unlimited access") ||
-    html.includes("Members-only story") ||
-    (html.includes("clap_footer") && !html.includes("<p>"))
-  );
-}
-
 async function tryFetch(url: string): Promise<string> {
   const HEADERS = {
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -243,23 +231,7 @@ export async function GET(req: NextRequest) {
       .replace(/\s*[|\-\u2013\u2014]\s*(Medium|DEV Community|dev\.to|Freedium|plainenglish\.io|towards[^<]*).*$/i, "")
       .replace(/\s*[|]\s*by\s+.+$/i, "")
       .replace(/\s*[|]\s*(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[^|]*$/i, "")
-      .trim();
-
-    if (isFromMedium && isPaywalled(raw)) {
-      const freediumUrl = "https://freedium.cfd/" + url;
-      const paywallHtml = [
-        '<div style="text-align:center;padding:40px 20px;">',
-        '<p style="font-size:2rem;margin-bottom:12px;">' + "\uD83D\uDD12" + '</p>',
-        '<h2 style="font-family:sans-serif;font-size:1.1rem;font-weight:700;margin-bottom:8px;">Members Only</h2>',
-        '<p style="font-family:sans-serif;font-size:0.9rem;color:#666;margin-bottom:24px;">This article is behind Medium paywall.</p>',
-        '<a href="' + freediumUrl + '" target="_blank" rel="noopener noreferrer" style="display:inline-block;background:#1a8917;color:#fff;padding:12px 24px;border-radius:8px;font-family:sans-serif;font-weight:600;font-size:0.9rem;text-decoration:none;">Read on Freedium</a>',
-        '<p style="font-family:sans-serif;font-size:0.78rem;color:#999;margin-top:16px;">Freedium provides free access to Medium articles.</p>',
-        '</div>'
-      ].join("");
-      return NextResponse.json(
-        { title, content: paywallHtml, textContent: "Paywalled.", siteName, paywalled: true },
-        { headers: { "Cache-Control": "public, s-maxage=300" } }
-      );
+      .trim();      );
     }
 
     const content = buildCleanHtml(raw);
