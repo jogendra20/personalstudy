@@ -40,6 +40,9 @@ async function tryFetch(url: string): Promise<string> {
     "Accept-Language": "en-US,en;q=0.5",
   };
 
+  const isMedium = isMediumDomain(url) || isMediumSubpub(url);
+  const freediumUrl = `https://freedium.cfd/${url}`;
+
   // Run all proxies in parallel, return first usable result
   const race = await Promise.allSettled([
     // 1. Direct fetch
@@ -53,6 +56,11 @@ async function tryFetch(url: string): Promise<string> {
     fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`, {
       headers: HEADERS, signal: AbortSignal.timeout(6000),
     }).then(r => r.ok ? r.text() : Promise.reject(`corsproxy ${r.status}`)),
+    // 4. Freedium — Medium only
+    ...(isMedium ? [
+      fetch(freediumUrl, { headers: HEADERS, signal: AbortSignal.timeout(8000) })
+        .then(r => r.ok ? r.text() : Promise.reject(`freedium ${r.status}`)),
+    ] : []),
   ]);
 
   // Pick best result — longest usable html wins
@@ -212,8 +220,17 @@ export async function GET(req: NextRequest) {
     const content = buildCleanHtml(raw);
     const textContent = stripHtml(content).slice(0, 3000);
 
+    const isPaywalled =
+      textContent.length < 800 ||
+      raw.toLowerCase().includes("member-only story") ||
+      raw.toLowerCase().includes("become a medium member") ||
+      raw.toLowerCase().includes("read the full story");
+    const freediumUrl = (isMediumDomain(url) || isMediumSubpub(url))
+      ? `https://freedium.cfd/${url}`
+      : null;
+
     return NextResponse.json(
-      { title, content, textContent, siteName },
+      { title, content, textContent, siteName, isPaywalled, freediumUrl },
       { headers: { "Cache-Control": "public, s-maxage=86400, stale-while-revalidate=604800" } }
     );
   } catch (err: any) {
