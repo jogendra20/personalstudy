@@ -21,14 +21,15 @@ function cleanHtml(html: string): string {
 function extractBody(html: string): string {
   const attempts = [
     html.match(/<article[^>]*>([\s\S]*?)<\/article>/i),
-    html.match(/class="[^"]*(?:article|post|entry|story|content)-body[^"]*"[^>]*>([\s\S]*?)<\/div>/i),
-    html.match(/class="[^"]*(?:article|post|entry|story)[^"]*"[^>]*>([\s\S]*?)<\/(?:article|div|section)>/i),
     html.match(/<main[^>]*>([\s\S]*?)<\/main>/i),
+    html.match(/<div[^>]*class="[^"]*(?:post|article|entry|content|story)[^"]*"[^>]*>([\s\S]*?)<\/div>/i),
   ];
   for (const m of attempts) {
-    if (m?.[1] && m[1].length > 200) return m[1];
+    if (m?.[1] && m[1].length > 300) return m[1];
   }
-  return html;
+  // Last resort: everything between body tags
+  const body = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+  return body?.[1] || html;
 }
 
 const ALLOWED = new Set([
@@ -41,7 +42,6 @@ const ALLOWED = new Set([
 ]);
 
 function sanitizeContent(html: string): string {
-  // Preserve allowed tags, strip everything else
   return html
     .replace(/<(h[1-6])[^>]*>([\s\S]*?)<\/\1>/gi, "<$1>$2</$1>")
     .replace(/<p[^>]*>([\s\S]*?)<\/p>/gi, "<p>$1</p>")
@@ -63,6 +63,57 @@ function sanitizeContent(html: string): string {
     });
 }
 
+async function fetchViaProxy(targetUrl: string): Promise<string> {
+  const proxies = [
+    // Proxy 1: allorigins
+    async () => {
+      const r = await fetch(
+        `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`,
+        { signal: AbortSignal.timeout(8000) }
+      );
+      if (!r.ok) throw new Error("allorigins failed");
+      const d = await r.json();
+      if (!d.contents) throw new Error("allorigins empty");
+      return d.contents as string;
+    },
+    // Proxy 2: corsproxy.io
+    async () => {
+      const r = await fetch(
+        `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`,
+        {
+          headers: { "User-Agent": "Mozilla/5.0 (compatible; Onyx/1.0)" },
+          signal: AbortSignal.timeout(8000),
+        }
+      );
+      if (!r.ok) throw new Error("corsproxy failed");
+      return await r.text();
+    },
+    // Proxy 3: direct fetch (works for dev.to, fails for Medium)
+    async () => {
+      const r = await fetch(targetUrl, {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+          "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+          "Accept-Language": "en-US,en;q=0.5",
+        },
+        signal: AbortSignal.timeout(8000),
+      });
+      if (!r.ok) throw new Error(`Direct fetch failed: ${r.status}`);
+      return await r.text();
+    },
+  ];
+
+  for (const proxy of proxies) {
+    try {
+      const html = await proxy();
+      if (html && html.length > 200) return html;
+    } catch {
+      // try next proxy
+    }
+  }
+  throw new Error("All proxies failed");
+}
+
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const url = searchParams.get("url") || "";
@@ -73,34 +124,27 @@ export async function GET(req: NextRequest) {
 
   const isMedium = url.includes("medium.com");
   const isDevTo = url.includes("dev.to");
+
+  // Use Freedium for Medium to bypass paywall
   const targetUrl = isMedium ? `https://freedium.cfd/${url}` : url;
 
   try {
-    const res = await fetch(
-      `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`,
-      {
-        headers: { "User-Agent": "Mozilla/5.0 (compatible; Onyx/1.0)" },
-        signal: AbortSignal.timeout(10000),
-      }
-    );
-
-    if (!res.ok) throw new Error(`Proxy returned ${res.status}`);
-
-    const data = await res.json();
-    const raw: string = data.contents || "";
-
-    if (!raw || raw.length < 100) throw new Error("Empty response");
+    const raw = await fetchViaProxy(targetUrl);
 
     const titleMatch = raw.match(/<title[^>]*>([^<]+)<\/title>/i);
     const title = (titleMatch?.[1] || "Article")
-      .replace(/\s*[|\-–—]\s*(Medium|DEV Community|dev\.to).*$/i, "")
+      .replace(/\s*[|\-–—]\s*(Medium|DEV Community|dev\.to|Freedium).*$/i, "")
       .trim();
 
     const cleaned = cleanHtml(raw);
     const body = extractBody(cleaned);
     const content = sanitizeContent(body);
     const textContent = stripHtml(body).slice(0, 3000);
-    const siteName = isMedium ? "Medium" : isDevTo ? "DEV Community" : new URL(url).hostname;
+    const siteName = isMedium
+      ? "Medium"
+      : isDevTo
+      ? "DEV Community"
+      : new URL(url).hostname;
 
     return NextResponse.json(
       { title, content, textContent, siteName },
