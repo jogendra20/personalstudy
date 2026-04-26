@@ -108,10 +108,12 @@ function buildCleanHtml(raw: string): string {
 
   let body = article || html;
 
-  // Strip leading author junk — <a> tags, empty elements before first real content
-  body = body.replace(/^(\s*<a[\s\S]*?<\/a>\s*|\s*<img[^>]*\/>\s*)+/i, "");
-  // Strip "X min read·Just now" type text at very start
-  body = body.replace(/^[\s\d\w\u00B7,\-]+(min read|just now|\d+ hours? ago|\d+ days? ago).*/im, "");
+  // Strip leading author junk — <a> tags before first real content
+  body = body.replace(/^(\s*<a[\s\S]*?<\/a>\s*|\s*<img[^>]*\/?>\s*)+/i, "");
+  // Strip Medium byline paragraphs
+  body = body.replace(/<p[^>]*>[^<]*(?:min read|just now|\d+\s*(?:hours?|days?|min)\s*ago)[^<]*<\/p>/gi, "");
+  body = body.replace(/^\s*--\s*$/gm, "");
+  body = body.replace(/<p[^>]*>\s*--\s*<\/p>/gi, "");
 
   // 3. Pre/code blocks — handle FIRST before anything else
   body = body.replace(/<pre[^>]*>([\s\S]*?)<\/pre>/gi, (_, inner) => {
@@ -160,7 +162,10 @@ function buildCleanHtml(raw: string): string {
   body = body.replace(/<p[^>]*>([\s\S]*?)<\/p>/gi, "<p>$1</p>");
   body = body.replace(/<strong[^>]*>([\s\S]*?)<\/strong>/gi, "<strong>$1</strong>");
   body = body.replace(/<b[^>]*>([\s\S]*?)<\/b>/gi, "<strong>$1</strong>");
-  body = body.replace(/<em[^>]*>([\s\S]*?)<\/em>/gi, "<em>$1</em>");
+  // Unwrap <em> spanning >200 chars — Medium subtitle pattern
+  body = body.replace(/<em[^>]*>([\s\S]*?)<\/em>/gi, (match, inner) => {
+    return inner.replace(/<[^>]+>/g, "").length > 200 ? inner : `<em>${inner}</em>`;
+  });
   body = body.replace(/<i[^>]*>([\s\S]*?)<\/i>/gi, "<em>$1</em>");
   body = body.replace(/<blockquote[^>]*>([\s\S]*?)<\/blockquote>/gi, "<blockquote>$1</blockquote>");
   // ul/ol/li handled by KEEP stripper below
