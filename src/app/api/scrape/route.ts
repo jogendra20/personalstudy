@@ -192,10 +192,14 @@ function buildCleanHtml(raw: string): string {
   body = body.replace(/(<br\/>\s*){3,}/gi, "<br/><br/>");
   body = body.replace(/\n{3,}/g, "\n\n");
 
-  // 8. Remove the author junk block at very top (before first real heading or paragraph)
-  // Strip any leading <a> tags, avatars, inline author text
-  body = body.replace(/^(<a[^>]*>[\s\S]*?<\/a>|<img[^>]*\/>|\s|·|[0-9]+ min read|Just now|[0-9]+ hours? ago|[0-9]+ days? ago|--)+/i, "");
-
+  // 8. Strip author junk — keep h1 title, cut everything until first real paragraph
+  const h1end = body.indexOf("</h1>");
+  if (h1end !== -1) {
+    const title1 = body.slice(0, h1end + 5);
+    const rest = body.slice(h1end + 5);
+    const pIdx = rest.search(/<p[^>]*>[^<]{15,}/);
+    body = title1 + (pIdx !== -1 ? rest.slice(pIdx) : rest);
+  }
   return body.trim();
 }
 
