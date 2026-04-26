@@ -203,6 +203,9 @@ function buildCleanHtml(raw: string): string {
   body = body.replace(/(<br\/>\s*){3,}/gi, "<br/><br/>");
   body = body.replace(/\n{3,}/g, "\n\n");
 
+  // 7b. Remove <h1> from body — page renders title separately
+  body = body.replace(/<h1[^>]*>[\s\S]*?<\/h1>/i, "");
+
   // 8. Strip author junk — keep h1 title, cut everything until first real paragraph
   const h1end = body.indexOf("</h1>");
   if (h1end !== -1) {
@@ -228,6 +231,8 @@ export async function GET(req: NextRequest) {
     const titleMatch = raw.match(/<title[^>]*>([^<]+)<\/title>/i);
     const title = (titleMatch?.[1] || "Article")
       .replace(/\s*[|\-–—]\s*(Medium|DEV Community|dev\.to|Freedium|plainenglish\.io|towards[^<]*).*$/i, "")
+      .replace(/\s*[|]\s*by\s+.+$/i, "")
+      .replace(/\s*[|]\s*(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[^|]*$/i, "")
       .trim();
 
     // Check if paywalled — return special flag instead of broken content
