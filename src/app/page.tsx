@@ -354,7 +354,7 @@ export default function HomePage() {
         ) : error ? (
           <div style={{ textAlign:"center", padding:"60px 20px", color:"var(--text2)" }}>
             <p style={{ marginBottom:"16px" }}>{error}</p>
-            <button onClick={load} style={{ background:"var(--surface2)", border:"1px solid var(--border2)", borderRadius:"10px", padding:"10px 20px", color:"var(--text)", cursor:"pointer", fontFamily:"'Syne',sans-serif", fontWeight:600 }}>Try Again</button>
+            <button onClick={() => load()} style={{ background:"var(--surface2)", border:"1px solid var(--border2)", borderRadius:"10px", padding:"10px 20px", color:"var(--text)", cursor:"pointer", fontFamily:"'Syne',sans-serif", fontWeight:600 }}>Try Again</button>
           </div>
         ) : displayed.length === 0 ? (
           <div style={{ textAlign:"center", padding:"60px 20px" }}>
