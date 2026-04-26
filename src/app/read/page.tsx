@@ -334,12 +334,25 @@ function ReadPageInner() {
     if (!url) { setError("No URL provided."); setLoading(false); return; }
     setSaved(isArticleSaved(url));
 
+    // Check device cache first
+    const cacheKey = "onyx_article_" + btoa(url).slice(0, 40);
+    try {
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) {
+        setArticle(JSON.parse(cached));
+        setLoading(false);
+        return; // skip fetch
+      }
+    } catch {}
+
     fetch(`/api/scrape?url=${encodeURIComponent(url)}`)
       .then(r => r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`)))
       .then(data => {
         if (data.error) throw new Error(data.error);
         setArticle(data);
         setLoading(false);
+        // Save to device cache for offline
+        try { localStorage.setItem(cacheKey, JSON.stringify(data)); } catch {}
       })
       .catch(err => {
         setError(err.message || "Failed to load article.");
