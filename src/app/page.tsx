@@ -232,8 +232,25 @@ const ALL_TAGS = ["All","AI","ML","Python","DSA","System Design","Web Dev","Prog
 
 export default function HomePage() {
   const router = useRouter();
-  const [articles, setArticles] = useState<Article[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [articles, setArticles] = useState<Article[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const ts = parseInt(localStorage.getItem("onyx_feed_ts") || "0");
+      const raw = localStorage.getItem("onyx_feed_cache");
+      if (raw && Date.now() - ts < 5 * 60 * 1000) return JSON.parse(raw);
+    } catch {}
+    return [];
+  });
+  const [loading, setLoading] = useState(() => {
+    // Start as false if cache exists — no spinner on reopen
+    if (typeof window === "undefined") return true;
+    try {
+      const ts = parseInt(localStorage.getItem("onyx_feed_ts") || "0");
+      const raw = localStorage.getItem("onyx_feed_cache");
+      if (raw && Date.now() - ts < 5 * 60 * 1000) return false;
+    } catch {}
+    return true;
+  });
   const [error, setError] = useState("");
   const [activeTag, setActiveTag] = useState("All");
   const [showSaved, setShowSaved] = useState(false);
