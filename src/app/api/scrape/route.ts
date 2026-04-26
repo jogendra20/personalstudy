@@ -64,8 +64,8 @@ async function tryFetch(url: string): Promise<string> {
     // 4. Freedium — Medium only
     ...(isMedium ? [
       fetch(freediumUrl, { headers: HEADERS, signal: AbortSignal.timeout(6000) })
-        .catch(() => fetch(`https://freedium.cfd/${url}`, { headers: HEADERS, signal: AbortSignal.timeout(6000) }).then(r => r.ok ? r.text() : Promise.reject(`freedium2 ${r.status}`)))
         .then(r => r.ok ? r.text() : Promise.reject(`freedium ${r.status}`))
+        .catch(() => fetch(`https://freedium.cfd/${url}`, { headers: HEADERS, signal: AbortSignal.timeout(6000) }).then(r => r.ok ? r.text() : Promise.reject(`freedium2 ${r.status}`)))
         .then(h => { if (!isUsableHtml(h)) throw new Error("unusable"); return h; }),
     ] : []),
   ];
