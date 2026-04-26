@@ -243,7 +243,7 @@ function ReadPageInner() {
             if (s && s.length > 10) { setHighlight(s); setShowGhost(true); }
           }}>
             <h1 style={{ fontSize: "2rem", marginBottom: "20px" }}>{article.title}</h1>
-            <div dangerouslySetInnerHTML={{ __html: article.content }} style={{ fontSize: FONT_MAP[fontSize], lineHeight: 1.6 }} />
+            <div className="article-content" onMouseUp={handleTextSelect} onTouchEnd={handleTextSelect} dangerouslySetInnerHTML={{ __html: article.content }} style={{ fontSize: FONT_MAP[fontSize] }} />
           </div>
         )}
       </main>
