@@ -44,22 +44,27 @@ async function tryFetch(url: string): Promise<string> {
     "Accept-Language": "en-US,en;q=0.5",
   };
 
+  const isMedium = isMediumDomain(url) || isMediumSubpub(url);
+
   const strategies: (() => Promise<string>)[] = [
-    // 1. Direct fetch — works for most articles including Medium
+    // 1. allorigins first for Medium (direct fetch returns login wall)
     async () => {
-      const r = await fetch(url, { headers: HEADERS, signal: AbortSignal.timeout(8000) });
-      if (!r.ok) throw new Error(`Direct ${r.status}`);
-      return r.text();
-    },
-    // 2. allorigins proxy
-    async () => {
+      if (!isMedium) throw new Error("skip");
       const r = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`, {
         signal: AbortSignal.timeout(8000),
       });
       if (!r.ok) throw new Error(`allorigins ${r.status}`);
       const d = await r.json();
-      if (!d.contents || d.contents.length < 200) throw new Error("allorigins empty");
+      if (!d.contents || d.contents.length < 5000) throw new Error("allorigins too short");
       return d.contents;
+    },
+    // 2. Direct fetch — good for dev.to and subpubs
+    async () => {
+      const r = await fetch(url, { headers: HEADERS, signal: AbortSignal.timeout(8000) });
+      if (!r.ok) throw new Error(`Direct ${r.status}`);
+      const text = await r.text();
+      if (isMedium && text.length < 5000) throw new Error("direct too short for medium");
+      return text;
     },
     // 3. corsproxy
     async () => {
@@ -68,6 +73,17 @@ async function tryFetch(url: string): Promise<string> {
       });
       if (!r.ok) throw new Error(`corsproxy ${r.status}`);
       return r.text();
+    },
+    // 4. allorigins for non-medium as fallback
+    async () => {
+      if (isMedium) throw new Error("skip");
+      const r = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`, {
+        signal: AbortSignal.timeout(8000),
+      });
+      if (!r.ok) throw new Error(`allorigins ${r.status}`);
+      const d = await r.json();
+      if (!d.contents || d.contents.length < 200) throw new Error("allorigins empty");
+      return d.contents;
     },
   ];
 
