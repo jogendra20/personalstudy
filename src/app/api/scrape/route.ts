@@ -15,7 +15,7 @@ function cleanHtml(html: string): string {
     .replace(/<footer[\s\S]*?<\/footer>/gi, "")
     .replace(/<aside[\s\S]*?<\/aside>/gi, "")
     .replace(/<form[\s\S]*?<\/form>/gi, "")
-    .replace(/<- Root:    pkg install[\s\S]*?-->/g, "");
+    .replace(/<!--[\s\S]*?-->/g, "");
 }
 
 function extractBody(html: string): string {
@@ -31,16 +31,36 @@ function extractBody(html: string): string {
   return html;
 }
 
+const ALLOWED = new Set([
+  "h1","h2","h3","h4","h5","h6",
+  "p","strong","em","b","i",
+  "code","pre","blockquote",
+  "a","img","br","hr",
+  "ul","ol","li",
+  "figure","figcaption",
+]);
+
 function sanitizeContent(html: string): string {
+  // Preserve allowed tags, strip everything else
   return html
     .replace(/<(h[1-6])[^>]*>([\s\S]*?)<\/\1>/gi, "<$1>$2</$1>")
     .replace(/<p[^>]*>([\s\S]*?)<\/p>/gi, "<p>$1</p>")
-    .replace(/<(strong|em|code|pre|blockquote|ul|ol|li|br)[^>]*>([\s\S]*?)<\/\1>/gi, "<$1>$2</$1>")
+    .replace(/<(strong|em|b|i|code|pre|blockquote|ul|ol|li)[^>]*>([\s\S]*?)<\/\1>/gi, "<$1>$2</$1>")
     .replace(/<br\s*\/?>/gi, "<br/>")
     .replace(/<a[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi, '<a href="$1" target="_blank" rel="noopener noreferrer">$2</a>')
-    .replace(/<img[^>]*src="([^"]*)"[^>]*\/?>/gi, '<img src="$1" loading="lazy" />')
+    .replace(/<img[^>]*src="([^"]*)"[^>]*>/gi, '<img src="$1" loading="lazy" />')
+    .replace(/<figure[^>]*>([\s\S]*?)<\/figure>/gi, "<figure>$1</figure>")
+    .replace(/<figcaption[^>]*>([\s\S]*?)<\/figcaption>/gi, "<figcaption>$1</figcaption>")
+    .replace(/<hr[^>]*>/gi, "<hr/>")
     .replace(/(<br\/>\s*){3,}/gi, "<br/><br/>")
-    .replace(/<(?h[1-6]|p|strong|em|code|pre|blockquote|a|img|br|ul|ol|li|figure|figcaption|hr)\b)[^>]+>/gi, "");
+    .replace(/<[a-z][a-z0-9]*[^>]*>/gi, (match) => {
+      const tag = match.match(/^<([a-z][a-z0-9]*)/i)?.[1]?.toLowerCase();
+      return tag && ALLOWED.has(tag) ? match : "";
+    })
+    .replace(/<\/[a-z][a-z0-9]*>/gi, (match) => {
+      const tag = match.match(/^<\/([a-z][a-z0-9]*)/i)?.[1]?.toLowerCase();
+      return tag && ALLOWED.has(tag) ? match : "";
+    });
 }
 
 export async function GET(req: NextRequest) {
@@ -53,8 +73,6 @@ export async function GET(req: NextRequest) {
 
   const isMedium = url.includes("medium.com");
   const isDevTo = url.includes("dev.to");
-
-  // For Medium, use Freedium to bypass paywall
   const targetUrl = isMedium ? `https://freedium.cfd/${url}` : url;
 
   try {
@@ -73,7 +91,6 @@ export async function GET(req: NextRequest) {
 
     if (!raw || raw.length < 100) throw new Error("Empty response");
 
-    // Extract title — strip site suffix
     const titleMatch = raw.match(/<title[^>]*>([^<]+)<\/title>/i);
     const title = (titleMatch?.[1] || "Article")
       .replace(/\s*[|\-–—]\s*(Medium|DEV Community|dev\.to).*$/i, "")
@@ -83,7 +100,6 @@ export async function GET(req: NextRequest) {
     const body = extractBody(cleaned);
     const content = sanitizeContent(body);
     const textContent = stripHtml(body).slice(0, 3000);
-
     const siteName = isMedium ? "Medium" : isDevTo ? "DEV Community" : new URL(url).hostname;
 
     return NextResponse.json(
