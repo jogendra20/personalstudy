@@ -87,14 +87,6 @@ async function tryFetch(url: string): Promise<string> {
   throw new Error(`All strategies failed: ${errors.join(" | ")}`);
 }
 
-function extractArticleBody(html: string): string {
-  // Remove everything before the first <h1> or first real <p> — strips author header
-  const firstH1 = html.indexOf("<h1");
-  const firstP = html.indexOf("<p>");
-  const start = firstH1 !== -1 ? firstH1 : firstP !== -1 ? firstP : 0;
-  return html.slice(start);
-}
-
 function buildCleanHtml(raw: string): string {
   let html = raw;
 
@@ -119,7 +111,7 @@ function buildCleanHtml(raw: string): string {
     || html.match(/<body[^>]*>([\s\S]*?)<\/body>/i)?.[1]
     || html;
 
-  let body = extractArticleBody(article);
+  let body = article || html;
 
   // 3. Pre/code blocks — handle FIRST before anything else
   body = body.replace(/<pre[^>]*>([\s\S]*?)<\/pre>/gi, (_, inner) => {
