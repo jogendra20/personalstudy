@@ -41,7 +41,7 @@ async function tryFetch(url: string): Promise<string> {
   };
 
   const isMedium = isMediumDomain(url) || isMediumSubpub(url);
-  const freediumUrl = `https://freedium.cfd/${url}`;
+  const freediumUrl = `https://freedium-mirror.cfd/${url}`;
 
   // Run all proxies in parallel, return first usable result
   const fetches = [
@@ -64,6 +64,7 @@ async function tryFetch(url: string): Promise<string> {
     // 4. Freedium — Medium only
     ...(isMedium ? [
       fetch(freediumUrl, { headers: HEADERS, signal: AbortSignal.timeout(6000) })
+        .catch(() => fetch(`https://freedium.cfd/${url}`, { headers: HEADERS, signal: AbortSignal.timeout(6000) }).then(r => r.ok ? r.text() : Promise.reject(`freedium2 ${r.status}`)))
         .then(r => r.ok ? r.text() : Promise.reject(`freedium ${r.status}`))
         .then(h => { if (!isUsableHtml(h)) throw new Error("unusable"); return h; }),
     ] : []),
@@ -237,8 +238,8 @@ export async function GET(req: NextRequest) {
       raw.toLowerCase().includes("member-only story") ||
       raw.toLowerCase().includes("become a medium member") ||
       raw.toLowerCase().includes("read the full story");
-    const freediumUrl = (isMediumDomain(url) || isMediumSubpub(url))
-      ? `https://freedium.cfd/${url}`
+      ? `https://freedium-mirror.cfd/${url}`
+      ? `https://freedium-mirror.cfd/${url}`
       : null;
 
     return NextResponse.json(
