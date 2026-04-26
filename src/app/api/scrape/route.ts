@@ -238,7 +238,7 @@ export async function GET(req: NextRequest) {
       raw.toLowerCase().includes("member-only story") ||
       raw.toLowerCase().includes("become a medium member") ||
       raw.toLowerCase().includes("read the full story");
-      ? `https://freedium-mirror.cfd/${url}`
+    const freediumUrl = (isMediumDomain(url) || isMediumSubpub(url))
       ? `https://freedium-mirror.cfd/${url}`
       : null;
 
