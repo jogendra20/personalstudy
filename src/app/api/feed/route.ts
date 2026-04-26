@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 export const runtime = "edge";
-export const revalidate = 300; // cache 5 minutes
+export const revalidate = 300;
 
 interface FeedItem {
   title: string;
@@ -15,7 +15,6 @@ interface FeedItem {
 }
 
 const FEEDS = [
-  // Dev.to
   { url: "https://dev.to/feed/tag/machinelearning",        source: "devto", tag: "ML" },
   { url: "https://dev.to/feed/tag/deeplearning",           source: "devto", tag: "ML" },
   { url: "https://dev.to/feed/tag/artificialintelligence", source: "devto", tag: "AI" },
@@ -35,7 +34,6 @@ const FEEDS = [
   { url: "https://dev.to/feed/tag/career",                 source: "devto", tag: "Career" },
   { url: "https://dev.to/feed/tag/react",                  source: "devto", tag: "Web Dev" },
   { url: "https://dev.to/feed/tag/security",               source: "devto", tag: "Security" },
-  // Medium
   { url: "https://medium.com/feed/tag/machine-learning",        source: "medium", tag: "ML" },
   { url: "https://medium.com/feed/tag/deep-learning",           source: "medium", tag: "ML" },
   { url: "https://medium.com/feed/tag/artificial-intelligence", source: "medium", tag: "AI" },
@@ -80,6 +78,23 @@ function extractCover(xml: string): string | undefined {
   return url;
 }
 
+// Clean Medium URLs — strip ?source=rss... tracking params
+function cleanUrl(url: string, source: string): string {
+  if (source === "medium") {
+    try {
+      const u = new URL(url);
+      // Remove all query params — Medium article URLs don't need them
+      u.search = "";
+      // Also normalize subdomains like pub.towardsai.net → keep as-is
+      // but ensure it's a proper medium.com or known subdomain article
+      return u.toString();
+    } catch {
+      return url;
+    }
+  }
+  return url;
+}
+
 function parseRSS(xml: string, source: string, tag: string): FeedItem[] {
   const items: FeedItem[] = [];
   const itemMatches = Array.from(xml.matchAll(/<item>([\s\S]*?)<\/item>/gi));
@@ -92,10 +107,12 @@ function parseRSS(xml: string, source: string, tag: string): FeedItem[] {
        item.match(/<title>([\s\S]*?)<\/title>/i))?.[1] || ""
     ).trim();
 
-    const link = (
+    const rawLink = (
       item.match(/<link>([\s\S]*?)<\/link>/i) ||
       item.match(/<guid[^>]*>([\s\S]*?)<\/guid>/i)
     )?.[1]?.trim() || "";
+
+    const link = cleanUrl(rawLink, source);
 
     const desc = (
       item.match(/<description><!\[CDATA\[([\s\S]*?)\]\]><\/description>/i) ||
@@ -112,6 +129,9 @@ function parseRSS(xml: string, source: string, tag: string): FeedItem[] {
     )?.[1]?.trim() || new Date().toISOString();
 
     if (!title || !link) continue;
+
+    // Skip non-article URLs
+    if (!link.startsWith("http")) continue;
 
     items.push({
       title,
@@ -146,7 +166,6 @@ async function fetchOneFeed(feed: { url: string; source: string; tag: string }):
 }
 
 export async function GET() {
-  // Fetch all feeds in parallel (edge runtime handles this efficiently)
   const results = await Promise.allSettled(FEEDS.map(fetchOneFeed));
 
   const all: FeedItem[] = [];
@@ -162,7 +181,6 @@ export async function GET() {
     }
   }
 
-  // Shuffle
   all.sort(() => Math.random() - 0.5);
 
   return NextResponse.json(all, {
