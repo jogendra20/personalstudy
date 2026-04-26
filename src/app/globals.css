@@ -76,6 +76,27 @@ body { background: var(--bg); min-height: 100vh; overflow-x: hidden; }
 .article-content > p:first-of-type { font-size: 1.18rem; color: #111; line-height: 1.85; font-weight: 400; }
 .article-content strong, .article-content b { font-weight: 700; color: #111; }
 .article-content em, .article-content i { font-style: italic; color: #333; }
+
+/* ── Dark mode overrides ── */
+[data-dark="true"] { background: #0d0d0e !important; }
+[data-dark="true"] .article-content p { color: #d8d8e8; }
+[data-dark="true"] .article-content > p:first-of-type { color: #e8e8f0; }
+[data-dark="true"] .article-content strong,
+[data-dark="true"] .article-content b { color: #f0f0f8; }
+[data-dark="true"] .article-content em,
+[data-dark="true"] .article-content i { color: #c8c8d8; }
+[data-dark="true"] .article-content h1,
+[data-dark="true"] .article-content h2,
+[data-dark="true"] .article-content h3,
+[data-dark="true"] .article-content h4 { color: #f0f0f8; }
+[data-dark="true"] .article-content li { color: #d8d8e8; }
+[data-dark="true"] .article-content li::marker { color: #666680; }
+[data-dark="true"] .article-content hr { border-top-color: #2a2a2e; }
+[data-dark="true"] .article-content blockquote { border-left-color: #444458; color: #999aaa; }
+[data-dark="true"] .article-content code { background: #1e1e24; color: #e8b4ff; border-color: #2a2a2e; }
+[data-dark="true"] .article-content pre { background: #111114; border-color: #2a2a2e; }
+[data-dark="true"] .article-content a { color: #7ee787; }
+
 .article-content code {
   font-family: 'DM Mono', monospace; font-size: 0.82em;
   background: #f3f3f5; border: 1px solid #e0e0e8;

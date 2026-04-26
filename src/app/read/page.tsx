@@ -230,7 +230,7 @@ function ReadPageInner() {
   const textCol = dark ? "#e8e8f0" : "#111114";
 
   return (
-    <div style={{ minHeight: "100vh", background: bg, color: textCol }}>
+    <div data-dark={dark ? "true" : "false"} style={{ minHeight: "100vh", background: bg, color: textCol }}>
       <div style={{ position: "fixed", top: 0, height: "3px", width: `${progress}%`, background: "var(--accent3)", zIndex: 100 }} />
       <header style={{ padding: "14px 20px", display: "flex", justifyContent: "space-between", borderBottom: "1px solid #eee" }}>
         <button onClick={() => router.back()}>Back</button>
