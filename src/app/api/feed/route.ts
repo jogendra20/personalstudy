@@ -19,6 +19,11 @@ const FEEDS = [
   { url: "https://dev.to/feed/tag/deeplearning",           source: "devto", tag: "ML" },
   { url: "https://dev.to/feed/tag/artificialintelligence", source: "devto", tag: "AI" },
   { url: "https://dev.to/feed/tag/llm",                   source: "devto", tag: "AI" },
+  { url: "https://dev.to/feed/tag/generativeai",           source: "devto", tag: "AI" },
+  { url: "https://medium.com/feed/tag/generative-ai",      source: "medium", tag: "AI" },
+  { url: "https://medium.com/feed/tag/prompt-engineering",  source: "medium", tag: "AI" },
+  { url: "https://medium.com/feed/tag/large-language-models", source: "medium", tag: "AI" },
+  { url: "https://towardsdatascience.com/feed",            source: "medium", tag: "AI" },
   { url: "https://dev.to/feed/tag/python",                 source: "devto", tag: "Python" },
   { url: "https://dev.to/feed/tag/datastructures",         source: "devto", tag: "DSA" },
   { url: "https://dev.to/feed/tag/algorithms",             source: "devto", tag: "DSA" },
@@ -43,6 +48,9 @@ const FEEDS = [
   { url: "https://medium.com/feed/tag/data-structures",         source: "medium", tag: "DSA" },
   { url: "https://medium.com/feed/tag/algorithms",              source: "medium", tag: "DSA" },
   { url: "https://medium.com/feed/tag/leetcode",                source: "medium", tag: "DSA" },
+  { url: "https://medium.com/feed/tag/dynamic-programming",     source: "medium", tag: "DSA" },
+  { url: "https://dev.to/feed/tag/leetcode",                    source: "devto",  tag: "DSA" },
+  { url: "https://dev.to/feed/tag/competitiveprogramming",      source: "devto",  tag: "DSA" },
   { url: "https://medium.com/feed/tag/system-design",           source: "medium", tag: "System Design" },
   { url: "https://medium.com/feed/tag/web-development",         source: "medium", tag: "Web Dev" },
   { url: "https://medium.com/feed/tag/programming",             source: "medium", tag: "Programming" },
@@ -58,6 +66,25 @@ const FEEDS = [
   { url: "https://medium.com/feed/tag/reinforcement-learning",  source: "medium", tag: "ML" },
   { url: "https://medium.com/feed/tag/fastapi",                 source: "medium", tag: "Python" },
   { url: "https://medium.com/feed/tag/interview",               source: "medium", tag: "Career" },
+  // ── Trading ─────────────────────────────────────────────────────────────────
+  { url: "https://dev.to/feed/tag/trading",                     source: "devto",  tag: "Trading" },
+  { url: "https://dev.to/feed/tag/stockmarket",                 source: "devto",  tag: "Trading" },
+  { url: "https://medium.com/feed/tag/trading",                 source: "medium", tag: "Trading" },
+  { url: "https://medium.com/feed/tag/algorithmic-trading",     source: "medium", tag: "Trading" },
+  { url: "https://medium.com/feed/tag/stock-market",            source: "medium", tag: "Trading" },
+  { url: "https://medium.com/feed/tag/quantitative-finance",    source: "medium", tag: "Trading" },
+  { url: "https://medium.com/feed/tag/technical-analysis",      source: "medium", tag: "Trading" },
+
+  // ── Psychology ───────────────────────────────────────────────────────────────
+  { url: "https://medium.com/feed/tag/psychology",              source: "medium", tag: "Psychology" },
+  { url: "https://medium.com/feed/tag/cognitive-science",       source: "medium", tag: "Psychology" },
+  { url: "https://medium.com/feed/tag/mental-health",           source: "medium", tag: "Psychology" },
+  { url: "https://medium.com/feed/tag/neuroscience",            source: "medium", tag: "Psychology" },
+  { url: "https://medium.com/feed/tag/behavioral-psychology",   source: "medium", tag: "Psychology" },
+  { url: "https://medium.com/feed/tag/mindset",                 source: "medium", tag: "Psychology" },
+  { url: "https://medium.com/feed/tag/habit",                   source: "medium", tag: "Psychology" },
+  { url: "https://medium.com/feed/tag/trading-psychology",      source: "medium", tag: "Psychology" },
+  { url: "https://dev.to/feed/tag/mentalhealth",                source: "devto",  tag: "Psychology" },
 ] as const;
 
 function stripHtml(html: string): string {

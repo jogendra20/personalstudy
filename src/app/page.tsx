@@ -228,7 +228,7 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
   );
 }
 
-const ALL_TAGS = ["All","AI","ML","Python","DSA","System Design","Web Dev","Programming","Trading","DevOps","Linux","Career","Security"];
+const ALL_TAGS = ["All","AI","ML","Python","DSA","System Design","Web Dev","Programming","Trading","DevOps","Linux","Career","Security","Psychology"];
 
 export default function HomePage() {
   const router = useRouter();
