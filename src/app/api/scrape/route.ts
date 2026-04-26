@@ -171,9 +171,7 @@ function buildCleanHtml(raw: string): string {
   body = body.replace(/<em[^>]*>([\s\S]*?)<\/em>/gi, "<em>$1</em>");
   body = body.replace(/<i[^>]*>([\s\S]*?)<\/i>/gi, "<em>$1</em>");
   body = body.replace(/<blockquote[^>]*>([\s\S]*?)<\/blockquote>/gi, "<blockquote>$1</blockquote>");
-  body = body.replace(/<ul[^>]*>([\s\S]*?)<\/ul>/gi, "<ul>$1</ul>");
-  body = body.replace(/<ol[^>]*>([\s\S]*?)<\/ol>/gi, "<ol>$1</ol>");
-  body = body.replace(/<li[^>]*>([\s\S]*?)<\/li>/gi, "<li>$1</li>");
+  // ul/ol/li handled by KEEP stripper below
   body = body.replace(/<figure[^>]*>([\s\S]*?)<\/figure>/gi, "<figure>$1</figure>");
   body = body.replace(/<figcaption[^>]*>([\s\S]*?)<\/figcaption>/gi, "<figcaption>$1</figcaption>");
   body = body.replace(new RegExp('<a[^>]*href="(https?://[^"]*)"[^>]*>([\s\S]*?)<\/a>', 'gi'), '<a href="$1" target="_blank" rel="noopener noreferrer">$2</a>');
