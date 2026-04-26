@@ -221,6 +221,7 @@ export async function GET(req: NextRequest) {
       .replace(/\s*[|\-\u2013\u2014]\s*(Medium|DEV Community|dev\.to|Freedium|plainenglish\.io|towards[^<]*).*$/i, "")
       .replace(/\s*[|]\s*by\s+.+$/i, "")
       .replace(/\s*[|]\s*(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[^|]*$/i, "")
+      .replace(/\s*[|][^|]+$/, "")
       .trim();
 
     const content = buildCleanHtml(raw);

@@ -485,13 +485,13 @@ function ReadPageInner() {
 
             {/* Title */}
             <h1 style={{
-              fontFamily: "'Syne', sans-serif",
-              fontSize: "clamp(1.5rem, 4vw, 2.1rem)",
-              fontWeight: 800,
-              lineHeight: 1.15,
+              fontFamily: "Georgia, 'Times New Roman', serif",
+              fontSize: "clamp(1.6rem, 4vw, 2rem)",
+              fontWeight: 700,
+              lineHeight: 1.2,
               marginBottom: "12px",
-              letterSpacing: "-0.025em",
-              color: "var(--text)",
+              letterSpacing: "-0.01em",
+              color: "#111",
             }}>
               {article.title}
             </h1>
