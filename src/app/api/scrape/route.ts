@@ -224,12 +224,17 @@ export async function GET(req: NextRequest) {
       .replace(/\s*[|]\s*(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[^|]*$/i, "")
       .trim();
 
+    let siteName = "Article";
+    if (isFromMedium) siteName = "Medium";
+    else if (isDevTo) siteName = "DEV Community";
+    else { try { siteName = new URL(url).hostname.replace("www.", ""); } catch {} }
+
     // Check if paywalled — return special flag instead of broken content
-    if ((isFromMedium) && isPaywalled(raw)) {
+    if (isFromMedium && isPaywalled(raw)) {
       const freediumUrl = "https://freedium.cfd/" + url;
       return NextResponse.json(
-        { 
-          title, 
+        {
+          title,
           content: `<div style="text-align:center;padding:40px 20px;">
             <p style="font-size:2rem;margin-bottom:12px;">🔒</p>
             <h2 style="font-family:sans-serif;font-size:1.1rem;font-weight:700;margin-bottom:8px;">Members Only</h2>
@@ -247,11 +252,6 @@ export async function GET(req: NextRequest) {
 
     const content = buildCleanHtml(raw);
     const textContent = stripHtml(content).slice(0, 3000);
-
-    let siteName = "Article";
-    if (isFromMedium) siteName = "Medium";
-    else if (isDevTo) siteName = "DEV Community";
-    else { try { siteName = new URL(url).hostname.replace("www.", ""); } catch {} }
 
     return NextResponse.json(
       { title, content, textContent, siteName },
