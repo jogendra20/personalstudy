@@ -208,11 +208,17 @@ export async function GET() {
     }
   }
 
-  all.sort(() => Math.random() - 0.5);
+  // Shuffle differently every request using timestamp seed
+  const seed = Date.now();
+  all.sort((a, b) => {
+    const ha = (seed ^ a.url.length * 2654435761) >>> 0;
+    const hb = (seed ^ b.url.length * 2654435761) >>> 0;
+    return ha - hb;
+  });
 
   return NextResponse.json(all, {
     headers: {
-      "Cache-Control": "public, s-maxage=1800, stale-while-revalidate=3600",
+      "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
     },
   });
 }

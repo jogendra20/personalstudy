@@ -24,7 +24,7 @@ function stripHtml(html: string): string {
 export async function fetchFeed(
   onBatch?: (articles: Article[]) => void
 ): Promise<Article[]> {
-  const res = await fetch("/api/feed");
+  const res = await fetch(`/api/feed?t=${Date.now()}`);
   if (!res.ok) throw new Error("Feed fetch failed");
   const articles: Article[] = await res.json();
   // Add IDs (not stored server-side)
