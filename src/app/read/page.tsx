@@ -1,17 +1,22 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import {
-  scrapeArticle,
-  ScrapedArticle,
-  askGhostreader,
-  getGroqKey,
-  toggleSaveArticle,
-  isArticleSaved,
-  Article,
-} from "@/lib/api";
+import { getGroqKey, setGroqKey, toggleSaveArticle, isArticleSaved, Article } from "@/lib/api";
 import { Suspense } from "react";
+
+interface ScrapedArticle {
+  title: string;
+  content: string;
+  textContent: string;
+  byline?: string;
+  siteName?: string;
+}
+
+interface GhostMessage {
+  role: "user" | "ghost";
+  text: string;
+}
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 const IconBack = () => (
@@ -41,18 +46,13 @@ const IconSend = () => (
   </svg>
 );
 
-// ─── Ghostreader Panel ────────────────────────────────────────────────────────
-interface GhostMessage {
-  role: "user" | "ghost";
-  text: string;
-}
-
+// ─── Ghostreader ──────────────────────────────────────────────────────────────
 function GhostreaderPanel({
-  highlight,
+  initialHighlight,
   articleText,
   onClose,
 }: {
-  highlight: string;
+  initialHighlight: string;
   articleText: string;
   onClose: () => void;
 }) {
@@ -60,33 +60,75 @@ function GhostreaderPanel({
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [noKey, setNoKey] = useState(false);
+  const [inlineKey, setInlineKey] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
+  // Keep full conversation for follow-up context
+  const conversationRef = useRef<{ role: string; content: string }[]>([]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   useEffect(() => {
-    if (!highlight) return;
+    if (!initialHighlight) return;
     const key = getGroqKey();
     if (!key) { setNoKey(true); return; }
-    setNoKey(false);
-    handleAsk(highlight, true);
-  }, [highlight]);
+    sendMessage(`"${initialHighlight}"`, true);
+  }, []);
 
-  async function handleAsk(text: string, isHighlight = false) {
+  async function sendMessage(text: string, isFirst = false) {
     const key = getGroqKey();
     if (!key) { setNoKey(true); return; }
 
-    const userMsg: GhostMessage = { role: "user", text: isHighlight ? `"${text}"` : text };
+    const userMsg: GhostMessage = { role: "user", text };
     setMessages(prev => [...prev, userMsg]);
     setInput("");
     setLoading(true);
 
+    const systemPrompt = `You are Ghostreader — a sharp, concise reading companion. When given highlighted text or a question, explain clearly: define terms, give context, connect concepts. Be direct, no fluff. Max 3 short paragraphs.`;
+
+    // Build context: article excerpt + full conversation so far
+    const articleContext = articleText
+      ? `Article context:\n${articleText.slice(0, 1000)}\n\n`
+      : "";
+
+    // Add user turn to conversation history
+    if (isFirst) {
+      conversationRef.current = [
+        { role: "user", content: `${articleContext}Highlighted text: ${text}\n\nExplain this in the context of the article.` }
+      ];
+    } else {
+      conversationRef.current.push({ role: "user", content: text });
+    }
+
     try {
-      const context = isHighlight ? articleText : `${articleText}\n\nPrevious Q: ${highlight}`;
-      const res = await askGhostreader(text, context, key);
-      setMessages(prev => [...prev, { role: "ghost", text: res.explanation }]);
+      const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${key}`,
+        },
+        body: JSON.stringify({
+          model: "llama-3.3-70b-versatile",
+          messages: [
+            { role: "system", content: systemPrompt },
+            ...conversationRef.current,
+          ],
+          max_tokens: 512,
+          temperature: 0.6,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error?.message || "Groq API error");
+      }
+
+      const data = await res.json();
+      const reply = data.choices[0].message.content;
+      // Add assistant turn to history
+      conversationRef.current.push({ role: "assistant", content: reply });
+      setMessages(prev => [...prev, { role: "ghost", text: reply }]);
     } catch (e: any) {
       setMessages(prev => [...prev, { role: "ghost", text: `Error: ${e.message}` }]);
     } finally {
@@ -96,7 +138,14 @@ function GhostreaderPanel({
 
   function handleSubmit() {
     if (!input.trim() || loading) return;
-    handleAsk(input.trim());
+    sendMessage(input.trim());
+  }
+
+  function handleSaveInlineKey() {
+    if (!inlineKey.trim()) return;
+    setGroqKey(inlineKey.trim());
+    setNoKey(false);
+    if (initialHighlight) sendMessage(`"${initialHighlight}"`, true);
   }
 
   return (
@@ -118,7 +167,6 @@ function GhostreaderPanel({
           animation: "fadeUp 0.3s ease",
         }}
       >
-        {/* Header */}
         <div style={{
           display: "flex", alignItems: "center", justifyContent: "space-between",
           padding: "16px 20px",
@@ -145,39 +193,35 @@ function GhostreaderPanel({
           </button>
         </div>
 
-        {/* Messages */}
         <div style={{ flex: 1, overflowY: "auto", padding: "16px 20px", display: "flex", flexDirection: "column", gap: "12px" }}>
           {noKey && (
             <div style={{ padding: "8px 0" }}>
-              <p style={{ fontSize: "0.8rem", color: "#666", marginBottom: "10px" }}>
-                Add your free Groq API key to enable Ghostreader.
-                Get one at <a href="https://console.groq.com" target="_blank" style={{ color: "var(--accent3)" }}>console.groq.com</a>
+              <p style={{ fontSize: "0.8rem", color: "var(--text2)", marginBottom: "10px", lineHeight: 1.5 }}>
+                Add your free Groq API key to enable Ghostreader.{" "}
+                <a href="https://console.groq.com" target="_blank" rel="noopener noreferrer" style={{ color: "var(--accent3)" }}>
+                  Get one at console.groq.com
+                </a>
               </p>
               <div style={{ display: "flex", gap: "8px" }}>
                 <input
                   type="password"
+                  value={inlineKey}
+                  onChange={e => setInlineKey(e.target.value)}
                   placeholder="gsk_..."
-                  id="inline-groq-key"
                   style={{
                     flex: 1, padding: "9px 12px",
-                    background: "#f5f5f7", border: "1px solid #ddd",
+                    background: "var(--surface2)", border: "1px solid var(--border2)",
                     borderRadius: "8px", fontSize: "0.82rem",
-                    fontFamily: "monospace", outline: "none",
+                    fontFamily: "monospace", outline: "none", color: "var(--text)",
                   }}
                 />
                 <button
-                  onClick={() => {
-                    const el = document.getElementById("inline-groq-key") as HTMLInputElement;
-                    if (el && el.value.trim()) {
-                      localStorage.setItem("onyx_groq_key", el.value.trim());
-                      setNoKey(false);
-                    }
-                  }}
+                  onClick={handleSaveInlineKey}
                   style={{
                     background: "var(--accent3)", border: "none",
                     borderRadius: "8px", padding: "9px 16px",
                     color: "#fff", cursor: "pointer",
-                    fontFamily: "Syne", fontWeight: 700, fontSize: "0.82rem",
+                    fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: "0.82rem",
                   }}
                 >Save</button>
               </div>
@@ -185,10 +229,7 @@ function GhostreaderPanel({
           )}
 
           {messages.map((m, i) => (
-            <div key={i} style={{
-              display: "flex",
-              justifyContent: m.role === "user" ? "flex-end" : "flex-start",
-            }}>
+            <div key={i} style={{ display: "flex", justifyContent: m.role === "user" ? "flex-end" : "flex-start" }}>
               <div style={{
                 maxWidth: "85%",
                 padding: "10px 14px",
@@ -199,6 +240,7 @@ function GhostreaderPanel({
                 lineHeight: 1.6,
                 fontFamily: m.role === "user" ? "'DM Mono', monospace" : "'Instrument Serif', serif",
                 border: m.role === "ghost" ? "1px solid var(--border)" : "none",
+                whiteSpace: "pre-wrap",
               }}>
                 {m.text}
               </div>
@@ -209,10 +251,10 @@ function GhostreaderPanel({
             <div style={{ display: "flex", gap: "5px", padding: "4px 0" }}>
               {[0, 1, 2].map(i => (
                 <div key={i} style={{
-                  width: "6px", height: "6px",
+                  width: "7px", height: "7px",
                   background: "var(--accent3)",
                   borderRadius: "50%",
-                  animation: `fadeIn 0.6s ease ${i * 0.2}s infinite alternate`,
+                  animation: `bounce 0.8s ease ${i * 0.15}s infinite alternate`,
                 }} />
               ))}
             </div>
@@ -220,7 +262,6 @@ function GhostreaderPanel({
           <div ref={bottomRef} />
         </div>
 
-        {/* Input */}
         <div style={{
           padding: "12px 16px 20px",
           borderTop: "1px solid var(--border)",
@@ -254,11 +295,11 @@ function GhostreaderPanel({
               border: "none",
               borderRadius: "10px",
               padding: "10px 14px",
-              cursor: "pointer",
+              cursor: loading || !input.trim() ? "not-allowed" : "pointer",
               color: "#fff",
               display: "flex",
               alignItems: "center",
-              opacity: loading || !input.trim() ? 0.5 : 1,
+              opacity: loading || !input.trim() ? 0.4 : 1,
               transition: "opacity 0.2s",
             }}
           >
@@ -285,33 +326,30 @@ function ReadPageInner() {
   const [showGhost, setShowGhost] = useState(false);
 
   useEffect(() => {
-    // Restore meta from session
     try {
       const stored = sessionStorage.getItem("onyx_article");
       if (stored) setMeta(JSON.parse(stored));
-    } catch { /* ignore */ }
+    } catch {}
 
     if (!url) { setError("No URL provided."); setLoading(false); return; }
     setSaved(isArticleSaved(url));
 
     fetch(`/api/scrape?url=${encodeURIComponent(url)}`)
-      .then(r => r.ok ? r.json() : Promise.reject(r.status))
-      .then(data => { setArticle(data); setLoading(false); })
-      .catch(() => {
-        setArticle({
-          title: meta?.title || "Article",
-          content: `<iframe src="${url}" style="width:100%;height:80vh;border:none;border-radius:12px;" />`,
-          textContent: "",
-          siteName: url.includes("medium.com") ? "Medium" : "Dev.to",
-        });
+      .then(r => r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`)))
+      .then(data => {
+        if (data.error) throw new Error(data.error);
+        setArticle(data);
+        setLoading(false);
+      })
+      .catch(err => {
+        setError(err.message || "Failed to load article.");
         setLoading(false);
       });
   }, [url]);
 
   function handleSave() {
     if (!meta) return;
-    const result = toggleSaveArticle(meta);
-    setSaved(result);
+    setSaved(toggleSaveArticle(meta));
   }
 
   function handleTextSelect() {
@@ -325,10 +363,9 @@ function ReadPageInner() {
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--bg)" }}>
-      {/* Top bar */}
       <header style={{
         position: "sticky", top: 0, zIndex: 50,
-        background: "rgba(10,10,11,0.92)",
+        background: "rgba(255,255,255,0.95)",
         backdropFilter: "blur(20px)",
         borderBottom: "1px solid var(--border)",
         padding: "14px 20px",
@@ -349,10 +386,8 @@ function ReadPageInner() {
           </button>
 
           <div style={{ display: "flex", gap: "8px" }}>
-            {/* Ghost trigger */}
             <button
-              onClick={() => setShowGhost(true)}
-              title="Ask Ghostreader"
+              onClick={() => { setHighlight(""); setShowGhost(true); }}
               style={{
                 background: "var(--surface2)", border: "1px solid var(--border)",
                 borderRadius: "10px", padding: "8px 14px",
@@ -365,7 +400,6 @@ function ReadPageInner() {
               <IconGhost /> Ghost
             </button>
 
-            {/* Bookmark */}
             {meta && (
               <button
                 onClick={handleSave}
@@ -384,12 +418,8 @@ function ReadPageInner() {
         </div>
       </header>
 
-      {/* Highlight hint */}
       {!loading && !error && article && (
-        <div style={{
-          maxWidth: "680px", margin: "0 auto",
-          padding: "10px 20px 0",
-        }}>
+        <div style={{ maxWidth: "680px", margin: "0 auto", padding: "10px 20px 0" }}>
           <p style={{
             fontSize: "11px",
             fontFamily: "'DM Mono', monospace",
@@ -405,71 +435,43 @@ function ReadPageInner() {
         </div>
       )}
 
-      {/* Article content */}
       <main style={{ maxWidth: "680px", margin: "0 auto", padding: "24px 20px 80px" }}>
         {loading ? (
           <div style={{ animation: "fadeIn 0.3s ease" }}>
-            <div style={{ height: "36px", background: "var(--surface)", borderRadius: "8px", marginBottom: "16px", width: "75%" }} />
-            <div style={{ height: "20px", background: "var(--surface)", borderRadius: "6px", marginBottom: "10px" }} />
-            <div style={{ height: "20px", background: "var(--surface)", borderRadius: "6px", marginBottom: "10px", width: "90%" }} />
-            <div style={{ height: "20px", background: "var(--surface)", borderRadius: "6px", marginBottom: "10px", width: "80%" }} />
-            <div style={{ height: "20px", background: "var(--surface)", borderRadius: "6px", marginBottom: "10px" }} />
-            <div style={{ height: "20px", background: "var(--surface)", borderRadius: "6px", width: "60%" }} />
+            {[75, 100, 90, 100, 85, 60].map((w, i) => (
+              <div key={i} className="shimmer" style={{ height: i === 0 ? "36px" : "18px", width: `${w}%`, borderRadius: "6px", marginBottom: i === 0 ? "20px" : "10px" }} />
+            ))}
           </div>
         ) : error ? (
-          <div style={{ textAlign: "center", padding: "60px 20px", color: "var(--text2)" }}>
-            <p style={{ marginBottom: "16px" }}>{error}</p>
+          <div style={{ textAlign: "center", padding: "60px 20px" }}>
+            <p style={{ color: "var(--text2)", marginBottom: "16px", fontSize: "0.9rem" }}>{error}</p>
             <a
               href={url}
               target="_blank"
               rel="noopener noreferrer"
-              style={{
-                color: "var(--accent3)",
-                fontFamily: "'DM Mono', monospace",
-                fontSize: "0.82rem",
-              }}
+              style={{ color: "var(--accent3)", fontFamily: "'DM Mono', monospace", fontSize: "0.82rem" }}
             >
               Open original article ↗
             </a>
           </div>
         ) : article ? (
           <div className="animate-fade-up">
-            {/* Article title */}
-            <h1 style={{
-              fontFamily: "'Syne', sans-serif",
-              fontSize: "clamp(1.4rem, 4vw, 2rem)",
-              fontWeight: 800,
-              lineHeight: 1.2,
-              marginBottom: "16px",
-              letterSpacing: "-0.02em",
-            }}>
-              {article.title}
-            </h1>
-
-            {/* Meta */}
-            <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "32px" }}>
+            {/* Site + tag badges */}
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "16px" }}>
               {article.siteName && (
                 <span style={{
-                  fontSize: "11px",
-                  fontFamily: "'DM Mono', monospace",
-                  color: "var(--text3)",
-                  background: "var(--surface2)",
-                  border: "1px solid var(--border)",
-                  padding: "3px 10px",
-                  borderRadius: "20px",
+                  fontSize: "11px", fontFamily: "'DM Mono', monospace",
+                  color: "var(--text3)", background: "var(--surface2)",
+                  border: "1px solid var(--border)", padding: "3px 10px", borderRadius: "20px",
                 }}>
                   {article.siteName}
                 </span>
               )}
               {meta?.tag && (
                 <span style={{
-                  fontSize: "11px",
-                  fontFamily: "'DM Mono', monospace",
-                  color: "#c8ff40",
-                  background: "rgba(200,255,64,0.08)",
-                  border: "1px solid rgba(200,255,64,0.2)",
-                  padding: "3px 10px",
-                  borderRadius: "20px",
+                  fontSize: "11px", fontFamily: "'DM Mono', monospace",
+                  color: "#1a8917", background: "rgba(26,137,23,0.08)",
+                  border: "1px solid rgba(26,137,23,0.2)", padding: "3px 10px", borderRadius: "20px",
                 }}>
                   {meta.tag}
                 </span>
@@ -481,8 +483,27 @@ function ReadPageInner() {
               )}
             </div>
 
-            {/* Divider */}
-            <div style={{ height: "1px", background: "var(--border)", marginBottom: "32px" }} />
+            {/* Title */}
+            <h1 style={{
+              fontFamily: "'Syne', sans-serif",
+              fontSize: "clamp(1.5rem, 4vw, 2.1rem)",
+              fontWeight: 800,
+              lineHeight: 1.15,
+              marginBottom: "12px",
+              letterSpacing: "-0.025em",
+              color: "var(--text)",
+            }}>
+              {article.title}
+            </h1>
+
+            {/* Byline */}
+            {article.byline && (
+              <p style={{ fontSize: "0.85rem", color: "var(--text3)", fontFamily: "'DM Mono', monospace", marginBottom: "8px" }}>
+                {article.byline}
+              </p>
+            )}
+
+            <div style={{ height: "1px", background: "var(--border)", margin: "24px 0" }} />
 
             {/* Body */}
             <div
@@ -492,17 +513,12 @@ function ReadPageInner() {
               dangerouslySetInnerHTML={{ __html: article.content }}
             />
 
-            {/* Footer link */}
             <div style={{ marginTop: "48px", paddingTop: "24px", borderTop: "1px solid var(--border)" }}>
               <a
                 href={url}
                 target="_blank"
                 rel="noopener noreferrer"
-                style={{
-                  fontSize: "0.82rem",
-                  fontFamily: "'DM Mono', monospace",
-                  color: "var(--text3)",
-                }}
+                style={{ fontSize: "0.82rem", fontFamily: "'DM Mono', monospace", color: "var(--text3)" }}
               >
                 View original article ↗
               </a>
@@ -513,7 +529,7 @@ function ReadPageInner() {
 
       {showGhost && (
         <GhostreaderPanel
-          highlight={highlight}
+          initialHighlight={highlight}
           articleText={article?.textContent || ""}
           onClose={() => { setShowGhost(false); setHighlight(""); }}
         />

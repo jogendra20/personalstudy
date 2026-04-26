@@ -254,7 +254,7 @@ export default function HomePage() {
     catch { setError("Failed to load feed."); setLoading(false); }
   }, []);
 
-  useEffect(() => { load(); setStreak(getStreak()); bumpStreak(); }, [load]);
+  useEffect(() => { load(); setStreak(getStreak()); }, [load]);
 
   useEffect(() => {
     if (activeButtonRef.current && pillRef.current) {
@@ -270,7 +270,7 @@ export default function HomePage() {
 
   async function handleRefresh() { setRefreshing(true); await load(); setRefreshing(false); }
 
-  function openArticle(article: Article) {
+  function openArticle(article: Article) { bumpStreak(); setStreak(getStreak());
     sessionStorage.setItem("onyx_article", JSON.stringify(article));
     router.push("/read?url=" + encodeURIComponent(article.url));
   }

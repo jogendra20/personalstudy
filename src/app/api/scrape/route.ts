@@ -2,163 +2,102 @@ import { NextRequest, NextResponse } from "next/server";
 
 export const runtime = "edge";
 
-function stripTags(html: string): string {
-  return html.replace(/<[^>]*>/g, " ").replace(/&\w+;/g, " ").replace(/\s+/g, " ").trim();
+function stripHtml(html: string): string {
+  return html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
 }
 
-function extractMedium(html: string): string {
-  const attrPos = html.search(/class="[^"]*pw-post-body/i);
-  if (attrPos > 0) {
-    const tagStart = html.lastIndexOf("<", attrPos);
-    const chunk = html.slice(tagStart, tagStart + 120000);
-    const divEnd = chunk.search(/<section[^>]*data-testid="responses/i);
-    return divEnd > 0 ? chunk.slice(0, divEnd) : chunk;
-  }
-  const am = html.match(/<article[^>]*>([\s\S]*?)<\/article>/i);
-  if (am) return am[1];
-  const bm = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
-  return bm ? bm[1] : html;
-}
-
-function extractDevto(html: string): string {
-  const am = html.match(/<article[^>]*>([\s\S]*?)<\/article>/i);
-  if (am) return am[1];
-  const mm = html.match(/<main[^>]*>([\s\S]*?)<\/main>/i);
-  if (mm) return mm[1];
-  const bm = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
-  return bm ? bm[1] : html;
-}
-
-function clean(html: string): string {
+function cleanHtml(html: string): string {
   return html
-    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
-    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
-    .replace(/<nav[^>]*>[\s\S]*?<\/nav>/gi, "")
-    .replace(/<header[^>]*>[\s\S]*?<\/header>/gi, "")
-    .replace(/<footer[^>]*>[\s\S]*?<\/footer>/gi, "")
-    .replace(/<button[^>]*>[\s\S]*?<\/button>/gi, "")
-    .replace(/<svg[^>]*>[\s\S]*?<\/svg>/gi, "")
-    .replace(/<figure[^>]*class="[^"]*graf--layoutFillWidth[^"]*"[^>]*>[\s\S]*?<\/figure>/gi, "");
+    .replace(/<script[\s\S]*?<\/script>/gi, "")
+    .replace(/<style[\s\S]*?<\/style>/gi, "")
+    .replace(/<nav[\s\S]*?<\/nav>/gi, "")
+    .replace(/<header[\s\S]*?<\/header>/gi, "")
+    .replace(/<footer[\s\S]*?<\/footer>/gi, "")
+    .replace(/<aside[\s\S]*?<\/aside>/gi, "")
+    .replace(/<form[\s\S]*?<\/form>/gi, "")
+    .replace(/<- Root:    pkg install[\s\S]*?-->/g, "");
 }
 
-function decodeEntities(s: string): string {
-  return s.replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/&amp;/g,"&").replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&nbsp;/g," ");
+function extractBody(html: string): string {
+  const attempts = [
+    html.match(/<article[^>]*>([\s\S]*?)<\/article>/i),
+    html.match(/class="[^"]*(?:article|post|entry|story|content)-body[^"]*"[^>]*>([\s\S]*?)<\/div>/i),
+    html.match(/class="[^"]*(?:article|post|entry|story)[^"]*"[^>]*>([\s\S]*?)<\/(?:article|div|section)>/i),
+    html.match(/<main[^>]*>([\s\S]*?)<\/main>/i),
+  ];
+  for (const m of attempts) {
+    if (m?.[1] && m[1].length > 200) return m[1];
+  }
+  return html;
 }
 
-function format(raw: string): string {
-  let o = raw;
-
-  // Step 1: code blocks — Medium uses <pre> OR <div class="graf--pre">
-  // Strip ALL inner tags, decode entities, preserve text
-  o = o.replace(/<pre[^>]*>([\s\S]*?)<\/pre>/gi, (_: string, inner: string) => {
-    const text = decodeEntities(inner.replace(/<[^>]*>/g, "")).trim();
-    return text ? "\n<pre><code>" + text + "</code></pre>\n" : "";
-  });
-  o = o.replace(/<div[^>]*class="[^"]*graf--pre[^"]*"[^>]*>([\s\S]*?)<\/div>/gi, (_: string, inner: string) => {
-    const text = decodeEntities(inner.replace(/<[^>]*>/g, "")).trim();
-    return text ? "\n<pre><code>" + text + "</code></pre>\n" : "";
-  });
-
-  // Step 2: headings
-  o = o.replace(/<h1[^>]*>([\s\S]*?)<\/h1>/gi, (_: string, i: string) => "\n<h1>" + stripTags(i) + "</h1>\n");
-  o = o.replace(/<h2[^>]*>([\s\S]*?)<\/h2>/gi, (_: string, i: string) => "\n<h2>" + stripTags(i) + "</h2>\n");
-  o = o.replace(/<h3[^>]*>([\s\S]*?)<\/h3>/gi, (_: string, i: string) => "\n<h3>" + stripTags(i) + "</h3>\n");
-  o = o.replace(/<h4[^>]*>([\s\S]*?)<\/h4>/gi, (_: string, i: string) => "\n<h4>" + stripTags(i) + "</h4>\n");
-
-  // Step 3: blockquote
-  o = o.replace(/<blockquote[^>]*>([\s\S]*?)<\/blockquote>/gi, "\n<blockquote>$1</blockquote>\n");
-
-  // Step 4: lists
-  o = o.replace(/<ul[^>]*>([\s\S]*?)<\/ul>/gi, "\n<ul>$1</ul>\n");
-  o = o.replace(/<ol[^>]*>([\s\S]*?)<\/ol>/gi, "\n<ol>$1</ol>\n");
-  o = o.replace(/<li[^>]*>([\s\S]*?)<\/li>/gi, "<li>$1</li>");
-
-  // Step 5: paragraphs
-  o = o.replace(/<p[^>]*>([\s\S]*?)<\/p>/gi, "\n<p>$1</p>\n");
-
-  // Step 6: inline formatting
-  o = o.replace(/<strong[^>]*>([\s\S]*?)<\/strong>/gi, "<strong>$1</strong>");
-  o = o.replace(/<b[^>]*>([\s\S]*?)<\/b>/gi, "<strong>$1</strong>");
-  o = o.replace(/<em[^>]*>([\s\S]*?)<\/em>/gi, "<em>$1</em>");
-  o = o.replace(/<i[^>]*>([\s\S]*?)<\/i>/gi, "<em>$1</em>");
-  o = o.replace(/<code[^>]*>([\s\S]*?)<\/code>/gi, "<code>$1</code>");
-  o = o.replace(/<br\s*\/?>/gi, "<br/>");
-
-  // Step 7: images — src OR data-src fallback
-  o = o.replace(/<img[^>]*>/gi, (m: string) => {
-    const srcArr = Array.from(m.matchAll(/(?:data-src|src)\s*=\s*"([^"]*)"/g));
-    const altArr = Array.from(m.matchAll(/alt\s*=\s*"([^"]*)"/g));
-    const src = srcArr[0] ? srcArr[0][1] : "";
-    const alt = altArr[0] ? altArr[0][1] : "";
-    if (src || src.startsWith("data:")) return "";
-    return alt
-      ? "\n<img src=\"" + src + "\" alt=\"" + alt + "\" />\n"
-      : "\n<img src=\"" + src + "\" />\n";
-  });
-
-  // Step 8: links
-  o = o.replace(/<a[^>]*>/gi, (m: string) => {
-    const hrefArr = Array.from(m.matchAll(/href\s*=\s*"([^"]*)"/g));
-    const href = hrefArr[0] ? hrefArr[0][1] : "";
-    return href ? "<a href=\"" + href + "\">" : "";
-  });
-
-  // Step 9: strip remaining unknown tags, remove attributes from safe tags
-  const safeSet = new Set(["h1","h2","h3","h4","h5","h6","p","strong","em","code","pre","blockquote","ul","ol","li","br","img","a"]);
-  o = o.replace(/<([a-zA-Z][a-zA-Z0-9]*)([^>]*)>/g, (m: string, t: string, attrs: string) => {
-    const tag = t.toLowerCase();
-    if (!safeSet.has(tag)) return "";
-    if (attrs.trim() === "" || attrs.trim() === "/") return m;
-    return "<" + tag + ">";
-  });
-  o = o.replace(/<\/([a-zA-Z][a-zA-Z0-9]*)>/g, (m: string, t: string) => {
-    return safeSet.has(t.toLowerCase()) ? m : "";
-  });
-
-  // Step 10: cleanup
-  o = o.replace(/<p>\s*<\/p>/gi, "");
-  o = o.replace(/<p>(&nbsp;|\s)*<\/p>/gi, "");
-  o = o.replace(/\n{4,}/g, "\n\n");
-  return o.trim();
+function sanitizeContent(html: string): string {
+  return html
+    .replace(/<(h[1-6])[^>]*>([\s\S]*?)<\/\1>/gi, "<$1>$2</$1>")
+    .replace(/<p[^>]*>([\s\S]*?)<\/p>/gi, "<p>$1</p>")
+    .replace(/<(strong|em|code|pre|blockquote|ul|ol|li|br)[^>]*>([\s\S]*?)<\/\1>/gi, "<$1>$2</$1>")
+    .replace(/<br\s*\/?>/gi, "<br/>")
+    .replace(/<a[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi, '<a href="$1" target="_blank" rel="noopener noreferrer">$2</a>')
+    .replace(/<img[^>]*src="([^"]*)"[^>]*\/?>/gi, '<img src="$1" loading="lazy" />')
+    .replace(/(<br\/>\s*){3,}/gi, "<br/><br/>")
+    .replace(/<(?h[1-6]|p|strong|em|code|pre|blockquote|a|img|br|ul|ol|li|figure|figcaption|hr)\b)[^>]+>/gi, "");
 }
 
 export async function GET(req: NextRequest) {
-  const url = req.nextUrl.searchParams.get("url");
-  if (!url) return NextResponse.json({ error: "No URL" }, { status: 400 });
-  const isMedium = url.includes("medium.com") || url.includes("towardsdatascience.com") || url.includes("towardsdeeplearning.com") || url.includes("betterhumans") || url.includes("betterprogramming");
-  const targets = isMedium ? [
-    url,
-    "https://freedium.cfd/" + url,
-    "https://scribe.rip/" + url.replace(/https?:\/\/[^/]+/, ""),
-  ] : [url];
-  let lastError = "All sources failed";
-  for (const targetUrl of targets) {
-    try {
-      const res = await fetch(targetUrl, {
-        headers: {
-          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36",
-          "Accept": "text/html,application/xhtml+xml,*/*;q=0.8",
-          "Accept-Language": "en-US,en;q=0.9",
-        },
-        signal: AbortSignal.timeout(12000),
-      });
-      if (!res.ok) { lastError = "HTTP " + res.status; continue; }
-      const html = await res.text();
-      const tm = html.match(/<title[^>]*>([^<]+)<\/title>/i);
-      const title = stripTags((tm && tm[1]) || "Article")
-        .replace("- Freedium","").replace("| Medium","").replace("- Medium","")
-        .replace("| DEV Community","").replace("- DEV Community","")
-        .replace(/\s*\|.*$/,"").replace(/\s*-[^-]*$/,"").trim();
-      const body = isMedium ? extractMedium(html) : extractDevto(html);
-      const content = format(clean(body));
-      const textContent = stripTags(content);
-      if (textContent.length < 800 && isMedium && !targetUrl.includes("freedium") && !targetUrl.includes("scribe")) {
-        lastError = "Paywall hit"; continue;
-      }
-      return NextResponse.json({ title, content, textContent, siteName: isMedium ? "Medium" : "Dev.to" });
-    } catch(e: any) {
-      lastError = e.message;
-    }
+  const { searchParams } = new URL(req.url);
+  const url = searchParams.get("url") || "";
+
+  if (!url) {
+    return NextResponse.json({ error: "No URL provided" }, { status: 400 });
   }
-  return NextResponse.json({ error: lastError }, { status: 500 });
+
+  const isMedium = url.includes("medium.com");
+  const isDevTo = url.includes("dev.to");
+
+  // For Medium, use Freedium to bypass paywall
+  const targetUrl = isMedium ? `https://freedium.cfd/${url}` : url;
+
+  try {
+    const res = await fetch(
+      `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`,
+      {
+        headers: { "User-Agent": "Mozilla/5.0 (compatible; Onyx/1.0)" },
+        signal: AbortSignal.timeout(10000),
+      }
+    );
+
+    if (!res.ok) throw new Error(`Proxy returned ${res.status}`);
+
+    const data = await res.json();
+    const raw: string = data.contents || "";
+
+    if (!raw || raw.length < 100) throw new Error("Empty response");
+
+    // Extract title — strip site suffix
+    const titleMatch = raw.match(/<title[^>]*>([^<]+)<\/title>/i);
+    const title = (titleMatch?.[1] || "Article")
+      .replace(/\s*[|\-–—]\s*(Medium|DEV Community|dev\.to).*$/i, "")
+      .trim();
+
+    const cleaned = cleanHtml(raw);
+    const body = extractBody(cleaned);
+    const content = sanitizeContent(body);
+    const textContent = stripHtml(body).slice(0, 3000);
+
+    const siteName = isMedium ? "Medium" : isDevTo ? "DEV Community" : new URL(url).hostname;
+
+    return NextResponse.json(
+      { title, content, textContent, siteName },
+      {
+        headers: {
+          "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=7200",
+        },
+      }
+    );
+  } catch (err: any) {
+    return NextResponse.json(
+      { error: err.message || "Scrape failed" },
+      { status: 500 }
+    );
+  }
 }

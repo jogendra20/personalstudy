@@ -47,14 +47,15 @@ body { background: var(--bg); min-height: 100vh; overflow-x: hidden; }
 }
 
 .article-content {
-  font-family: 'Georgia', 'Charter', serif;
+  font-family: 'Georgia', 'Charter', 'Palatino Linotype', serif;
   font-size: 1.05rem;
   line-height: 1.9;
   color: #242424;
+  letter-spacing: -0.003em;
   word-break: break-word;
 }
-.article-content a { color: #1a8917; text-decoration: none; }
-.article-content a:hover { text-decoration: underline; }
+.article-content a { color: #1a8917; text-decoration: underline; text-decoration-color: rgba(26,137,23,0.3); text-underline-offset: 2px; }
+.article-content a:hover { text-decoration-color: #1a8917; }
 .article-content h1 {
   font-family: 'Syne', sans-serif; font-size: 1.8rem; font-weight: 800;
   color: #111; margin: 2.5rem 0 0.6rem; line-height: 1.2; letter-spacing: -0.02em;
@@ -71,14 +72,14 @@ body { background: var(--bg); min-height: 100vh; overflow-x: hidden; }
   font-family: 'Syne', sans-serif; font-size: 0.95rem; font-weight: 600;
   color: #333; margin: 1.5rem 0 0.3rem;
 }
-.article-content p { margin: 0 0 1.4rem; color: #242424; }
-.article-content > p:first-of-type { font-size: 1.1rem; color: #111; line-height: 1.85; }
+.article-content p { margin: 0 0 1.5rem; color: #242424; }
+.article-content > p:first-of-type { font-size: 1.18rem; color: #111; line-height: 1.85; font-weight: 400; }
 .article-content strong, .article-content b { font-weight: 700; color: #111; }
-.article-content em, .article-content i { font-style: italic; }
+.article-content em, .article-content i { font-style: italic; color: #333; }
 .article-content code {
   font-family: 'DM Mono', monospace; font-size: 0.82em;
   background: #f3f3f5; border: 1px solid #e0e0e8;
-  padding: 0.1em 0.45em; border-radius: 4px; color: #c7254e;
+  padding: 0.15em 0.45em; border-radius: 4px; color: #c7254e;
 }
 .article-content pre {
   font-family: 'DM Mono', monospace; font-size: 0.82rem;
@@ -91,16 +92,16 @@ body { background: var(--bg); min-height: 100vh; overflow-x: hidden; }
   background: none; border: none; padding: 0; color: inherit; font-size: inherit;
 }
 .article-content blockquote {
-  border-left: 3px solid #aaa; padding: 0.4rem 1.2rem; margin: 1.8rem 0;
-  color: #555; font-style: italic; background: #fafafa; border-radius: 0 6px 6px 0;
+  border-left: 3px solid #242424; padding: 0.2rem 1.4rem; margin: 2rem 0;
+  color: #444; font-style: italic; font-size: 1.1rem; line-height: 1.75;
 }
-.article-content ul, .article-content ol { padding-left: 1.6rem; margin: 0 0 1.4rem; }
-.article-content li { margin-bottom: 0.5rem; color: #242424; line-height: 1.75; }
+.article-content ul, .article-content ol { padding-left: 1.8rem; margin: 0 0 1.5rem; }
+.article-content li { margin-bottom: 0.6rem; color: #242424; line-height: 1.75; }
 .article-content li::marker { color: #888; }
-.article-content img { max-width: 100%; height: auto; border-radius: 8px; margin: 1.8rem auto; display: block; }
-.article-content hr { border: none; border-top: 1px solid #e5e5ea; margin: 2.5rem 0; }
-.article-content figure { margin: 1.8rem 0; text-align: center; }
-.article-content figcaption { font-size: 0.82rem; color: #999; margin-top: 0.5rem; font-style: italic; }
+.article-content img { max-width: 100%; height: auto; border-radius: 4px; margin: 2rem auto; display: block; }
+.article-content hr { border: none; border-top: 1px solid #e5e5ea; margin: 2.5rem auto; width: 30%; }
+.article-content figure { margin: 2rem 0; text-align: center; }
+.article-content figcaption { font-size: 0.82rem; color: #999; margin-top: 0.5rem; font-style: italic; font-family: 'DM Mono', monospace; }
 .article-content *::selection { background: rgba(26,137,23,0.15); color: inherit; }
 
 @keyframes fadeUp {
@@ -121,3 +122,8 @@ body { background: var(--bg); min-height: 100vh; overflow-x: hidden; }
 .stagger > *:nth-child(4) { animation-delay: 0.2s; }
 .stagger > *:nth-child(5) { animation-delay: 0.25s; }
 .stagger > *:nth-child(6) { animation-delay: 0.3s; }
+
+@keyframes bounce {
+  from { transform: translateY(0); opacity: 0.4; }
+  to { transform: translateY(-6px); opacity: 1; }
+}
