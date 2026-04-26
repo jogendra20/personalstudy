@@ -31,35 +31,66 @@ function extractBody(html: string): string {
   return html;
 }
 
-const ALLOWED = new Set([
-  "h1","h2","h3","h4","h5","h6",
-  "p","strong","em","b","i",
-  "code","pre","blockquote",
-  "a","img","br","hr",
-  "ul","ol","li",
-  "figure","figcaption",
-]);
-
 function sanitizeContent(html: string): string {
-  return html
-    .replace(/<(h[1-6])[^>]*>([\s\S]*?)<\/\1>/gi, "<$1>$2</$1>")
-    .replace(/<p[^>]*>([\s\S]*?)<\/p>/gi, "<p>$1</p>")
-    .replace(/<(strong|em|b|i|code|pre|blockquote|ul|ol|li)[^>]*>([\s\S]*?)<\/\1>/gi, "<$1>$2</$1>")
-    .replace(/<br\s*\/?>/gi, "<br/>")
-    .replace(/<a[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi, '<a href="$1" target="_blank" rel="noopener noreferrer">$2</a>')
-    .replace(/<img[^>]*src="([^"]*)"[^>]*>/gi, '<img src="$1" loading="lazy" />')
-    .replace(/<figure[^>]*>([\s\S]*?)<\/figure>/gi, "<figure>$1</figure>")
-    .replace(/<figcaption[^>]*>([\s\S]*?)<\/figcaption>/gi, "<figcaption>$1</figcaption>")
-    .replace(/<hr[^>]*>/gi, "<hr/>")
-    .replace(/(<br\/>\s*){3,}/gi, "<br/><br/>")
-    .replace(/<[a-z][a-z0-9]*[^>]*>/gi, (match) => {
-      const tag = match.match(/^<([a-z][a-z0-9]*)/i)?.[1]?.toLowerCase();
-      return tag && ALLOWED.has(tag) ? match : "";
-    })
-    .replace(/<\/[a-z][a-z0-9]*>/gi, (match) => {
-      const tag = match.match(/^<\/([a-z][a-z0-9]*)/i)?.[1]?.toLowerCase();
-      return tag && ALLOWED.has(tag) ? match : "";
-    });
+  let out = html;
+
+  // 1. Fix images — recover src from data-src (lazy loaded)
+  out = out.replace(/<img[^>]*?data-src="([^"]+)"[^>]*>/gi, '<img src="$1" loading="lazy" style="max-width:100%;border-radius:8px;margin:1.5rem auto;display:block;" />');
+  out = out.replace(/<img[^>]*?src="([^"]+)"[^>]*>/gi, '<img src="$1" loading="lazy" style="max-width:100%;border-radius:8px;margin:1.5rem auto;display:block;" />');
+
+  // 2. Fix code blocks — preserve pre/code content exactly
+  out = out.replace(/<pre[^>]*>([\s\S]*?)<\/pre>/gi, (_, inner) => {
+    const code = inner.replace(/<code[^>]*>([\s\S]*?)<\/code>/gi, "$1");
+    return `<pre>${code}</pre>`;
+  });
+
+  // 3. Inline code
+  out = out.replace(/<code[^>]*>([\s\S]*?)<\/code>/gi, "<code>$1</code>");
+
+  // 4. Headings
+  out = out.replace(/<h1[^>]*>([\s\S]*?)<\/h1>/gi, "<h1>$1</h1>");
+  out = out.replace(/<h2[^>]*>([\s\S]*?)<\/h2>/gi, "<h2>$1</h2>");
+  out = out.replace(/<h3[^>]*>([\s\S]*?)<\/h3>/gi, "<h3>$1</h3>");
+  out = out.replace(/<h4[^>]*>([\s\S]*?)<\/h4>/gi, "<h4>$1</h4>");
+
+  // 5. Paragraphs
+  out = out.replace(/<p[^>]*>([\s\S]*?)<\/p>/gi, "<p>$1</p>");
+
+  // 6. Formatting
+  out = out.replace(/<strong[^>]*>([\s\S]*?)<\/strong>/gi, "<strong>$1</strong>");
+  out = out.replace(/<b[^>]*>([\s\S]*?)<\/b>/gi, "<strong>$1</strong>");
+  out = out.replace(/<em[^>]*>([\s\S]*?)<\/em>/gi, "<em>$1</em>");
+  out = out.replace(/<i[^>]*>([\s\S]*?)<\/i>/gi, "<em>$1</em>");
+
+  // 7. Blockquote
+  out = out.replace(/<blockquote[^>]*>([\s\S]*?)<\/blockquote>/gi, "<blockquote>$1</blockquote>");
+
+  // 8. Lists
+  out = out.replace(/<ul[^>]*>([\s\S]*?)<\/ul>/gi, "<ul>$1</ul>");
+  out = out.replace(/<ol[^>]*>([\s\S]*?)<\/ol>/gi, "<ol>$1</ol>");
+  out = out.replace(/<li[^>]*>([\s\S]*?)<\/li>/gi, "<li>$1</li>");
+
+  // 9. Links
+  out = out.replace(/<a[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi,
+    '<a href="$1" target="_blank" rel="noopener noreferrer">$2</a>');
+
+  // 10. Breaks and dividers
+  out = out.replace(/<br\s*\/?>/gi, "<br/>");
+  out = out.replace(/<hr[^>]*>/gi, "<hr/>");
+
+  // 11. Figure / caption
+  out = out.replace(/<figure[^>]*>([\s\S]*?)<\/figure>/gi, "<figure>$1</figure>");
+  out = out.replace(/<figcaption[^>]*>([\s\S]*?)<\/figcaption>/gi, "<figcaption>$1</figcaption>");
+
+  // 12. Strip remaining unknown tags but keep their inner content
+  out = out.replace(/<(?!\/?(h[1-6]|p|strong|em|code|pre|blockquote|a|img|br|hr|ul|ol|li|figure|figcaption)\b)[a-z][a-z0-9]*[^>]*>/gi, "");
+  out = out.replace(/<\/(?!h[1-6]|p|strong|em|code|pre|blockquote|a|img|ul|ol|li|figure|figcaption\b)[a-z][a-z0-9]*>/gi, "");
+
+  // 13. Clean up excess whitespace
+  out = out.replace(/(<br\/>\s*){3,}/gi, "<br/><br/>");
+  out = out.replace(/\n{3,}/g, "\n\n");
+
+  return out.trim();
 }
 
 function isMediumDomain(url: string): boolean {
@@ -70,7 +101,6 @@ function isMediumDomain(url: string): boolean {
 }
 
 function isMediumSubpub(url: string): boolean {
-  // e.g. python.plainenglish.io, towardsdatascience.com, betterprogramming.pub
   try {
     const host = new URL(url).hostname;
     const SUBPUBS = [
@@ -90,13 +120,11 @@ async function tryFetch(url: string): Promise<string> {
   };
 
   const strategies: (() => Promise<string>)[] = [
-    // 1. Direct fetch
     async () => {
       const r = await fetch(url, { headers: HEADERS, signal: AbortSignal.timeout(8000) });
       if (!r.ok) throw new Error(`Direct ${r.status}`);
       return r.text();
     },
-    // 2. allorigins
     async () => {
       const r = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`, {
         signal: AbortSignal.timeout(8000),
@@ -106,7 +134,6 @@ async function tryFetch(url: string): Promise<string> {
       if (!d.contents || d.contents.length < 200) throw new Error("allorigins empty");
       return d.contents;
     },
-    // 3. corsproxy.io
     async () => {
       const r = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`, {
         headers: HEADERS,
@@ -115,7 +142,6 @@ async function tryFetch(url: string): Promise<string> {
       if (!r.ok) throw new Error(`corsproxy ${r.status}`);
       return r.text();
     },
-    // 4. Freedium (Medium paywall bypass) — last resort for medium.com
     async () => {
       if (!isMediumDomain(url)) throw new Error("not medium");
       const freediumUrl = `https://freedium.cfd/${url}`;
@@ -178,7 +204,6 @@ export async function GET(req: NextRequest) {
       { headers: { "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=7200" } }
     );
   } catch (err: any) {
-    // Return the detailed error so we can debug
     return NextResponse.json(
       { error: err.message || "Scrape failed" },
       { status: 500 }
