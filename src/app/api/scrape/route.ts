@@ -25,6 +25,14 @@ function isMediumSubpub(url: string): boolean {
   } catch { return false; }
 }
 
+function isUsableHtml(html: string): boolean {
+  if (!html || html.length < 3000) return false;
+  if (html.includes("Enable JavaScript and cookies to continue")) return false;
+  if (html.includes("cf-browser-verification")) return false;
+  if (html.includes("Please complete the security check")) return false;
+  return true;
+}
+
 async function tryFetch(url: string): Promise<string> {
   const HEADERS = {
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -32,59 +40,31 @@ async function tryFetch(url: string): Promise<string> {
     "Accept-Language": "en-US,en;q=0.5",
   };
 
-  const isMedium = isMediumDomain(url) || isMediumSubpub(url);
-
-  const strategies: (() => Promise<string>)[] = [
-    // 1. allorigins first for Medium (direct fetch returns login wall)
-    async () => {
-      if (!isMedium) throw new Error("skip");
-      const r = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`, {
-        signal: AbortSignal.timeout(8000),
-      });
-      if (!r.ok) throw new Error(`allorigins ${r.status}`);
-      const d = await r.json();
-      if (!d.contents || d.contents.length < 5000) throw new Error("allorigins too short");
-      return d.contents;
-    },
-    // 2. Direct fetch — good for dev.to and subpubs
-    async () => {
-      const r = await fetch(url, { headers: HEADERS, signal: AbortSignal.timeout(8000) });
-      if (!r.ok) throw new Error(`Direct ${r.status}`);
-      const text = await r.text();
-      if (isMedium && text.length < 5000) throw new Error("direct too short for medium");
-      return text;
-    },
+  // Run all proxies in parallel, return first usable result
+  const race = await Promise.allSettled([
+    // 1. Direct fetch
+    fetch(url, { headers: HEADERS, signal: AbortSignal.timeout(6000) })
+      .then(r => r.ok ? r.text() : Promise.reject(`direct ${r.status}`)),
+    // 2. allorigins
+    fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`, {
+      signal: AbortSignal.timeout(6000),
+    }).then(r => r.json()).then(d => d.contents || Promise.reject("empty")),
     // 3. corsproxy
-    async () => {
-      const r = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`, {
-        headers: HEADERS, signal: AbortSignal.timeout(8000),
-      });
-      if (!r.ok) throw new Error(`corsproxy ${r.status}`);
-      return r.text();
-    },
-    // 4. allorigins for non-medium as fallback
-    async () => {
-      if (isMedium) throw new Error("skip");
-      const r = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`, {
-        signal: AbortSignal.timeout(8000),
-      });
-      if (!r.ok) throw new Error(`allorigins ${r.status}`);
-      const d = await r.json();
-      if (!d.contents || d.contents.length < 200) throw new Error("allorigins empty");
-      return d.contents;
-    },
-  ];
+    fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`, {
+      headers: HEADERS, signal: AbortSignal.timeout(6000),
+    }).then(r => r.ok ? r.text() : Promise.reject(`corsproxy ${r.status}`)),
+  ]);
 
-  const errors: string[] = [];
-  for (const s of strategies) {
-    try {
-      const html = await s();
-      if (html && html.length > 200) return html;
-    } catch (e: any) {
-      errors.push(e.message);
+  // Pick best result — longest usable html wins
+  let best = "";
+  for (const r of race) {
+    if (r.status === "fulfilled" && isUsableHtml(r.value) && r.value.length > best.length) {
+      best = r.value;
     }
   }
-  throw new Error(`All strategies failed: ${errors.join(" | ")}`);
+
+  if (best) return best;
+  throw new Error("All proxies failed or returned unusable content");
 }
 
 function buildCleanHtml(raw: string): string {
