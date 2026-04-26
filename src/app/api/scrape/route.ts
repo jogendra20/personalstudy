@@ -232,7 +232,6 @@ export async function GET(req: NextRequest) {
       .replace(/\s*[|]\s*by\s+.+$/i, "")
       .replace(/\s*[|]\s*(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[^|]*$/i, "")
       .trim();
-    }
 
     const content = buildCleanHtml(raw);
     const textContent = stripHtml(content).slice(0, 3000);
