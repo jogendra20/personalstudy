@@ -202,7 +202,7 @@ function buildCleanHtml(raw: string): string {
   body = body.replace(/<li[^>]*>([\s\S]*?)<\/li>/gi, "<li>$1</li>");
   body = body.replace(/<figure[^>]*>([\s\S]*?)<\/figure>/gi, "<figure>$1</figure>");
   body = body.replace(/<figcaption[^>]*>([\s\S]*?)<\/figcaption>/gi, "<figcaption>$1</figcaption>");
-  body = body.replace(/<a[^>]*href="(https?://[^"]*)"[^>]*>([\s\S]*?)<\/a>/gi,
+  body = body.replace(new RegExp('<a[^>]*href="(https?://[^"]*)"[^>]*>([\s\S]*?)<\/a>', 'gi'), '<a href="$1" target="_blank" rel="noopener noreferrer">$2</a>');
     '<a href="$1" target="_blank" rel="noopener noreferrer">$2</a>');
   body = body.replace(/<br\s*\/?>/gi, "<br/>");
   body = body.replace(/<hr[^>]*>/gi, "<hr/>");
