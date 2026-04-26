@@ -214,6 +214,11 @@ export async function GET(req: NextRequest) {
   const isFromMedium = isMediumDomain(url) || isMediumSubpub(url);
   const isDevTo = url.includes("dev.to");
 
+  let siteName = "Article";
+  if (isFromMedium) siteName = "Medium";
+  else if (isDevTo) siteName = "DEV Community";
+  else { try { siteName = new URL(url).hostname.replace("www.", ""); } catch {} }
+
   try {
     const raw = await tryFetch(url);
 
@@ -224,34 +229,28 @@ export async function GET(req: NextRequest) {
       .replace(/\s*[|]\s*(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[^|]*$/i, "")
       .trim();
 
-    let siteName = "Article";
-    if (isFromMedium) siteName = "Medium";
-    else if (isDevTo) siteName = "DEV Community";
-    else { try { siteName = new URL(url).hostname.replace("www.", ""); } catch {} }
-
-    }
-
-    const content = buildCleanHtml(raw);
-    const textContent = stripHtml(content).slice(0, 3000);
-    // Check if paywalled — return special flag instead of broken content
     if (isFromMedium && isPaywalled(raw)) {
       const freediumUrl = "https://freedium.cfd/" + url;
       return NextResponse.json(
         {
           title,
-          content: `<div style="text-align:center;padding:40px 20px;">
+          content: \`<div style="text-align:center;padding:40px 20px;">
             <p style="font-size:2rem;margin-bottom:12px;">🔒</p>
             <h2 style="font-family:sans-serif;font-size:1.1rem;font-weight:700;margin-bottom:8px;">Members Only</h2>
             <p style="font-family:sans-serif;font-size:0.9rem;color:#666;margin-bottom:24px;">This article is behind Medium's paywall.</p>
-            <a href="${freediumUrl}" target="_blank" rel="noopener noreferrer" style="display:inline-block;background:#1a8917;color:#fff;padding:12px 24px;border-radius:8px;font-family:sans-serif;font-weight:600;font-size:0.9rem;text-decoration:none;">Read on Freedium ↗</a>
+            <a href="\${freediumUrl}" target="_blank" rel="noopener noreferrer" style="display:inline-block;background:#1a8917;color:#fff;padding:12px 24px;border-radius:8px;font-family:sans-serif;font-weight:600;font-size:0.9rem;text-decoration:none;">Read on Freedium ↗</a>
             <p style="font-family:sans-serif;font-size:0.78rem;color:#999;margin-top:16px;">Freedium provides free access to Medium articles.</p>
-          </div>`,
+          </div>\`,
           textContent: "This article is behind Medium paywall. Open on Freedium.",
           siteName,
           paywalled: true
         },
         { headers: { "Cache-Control": "public, s-maxage=300" } }
       );
+    }
+
+    const content = buildCleanHtml(raw);
+    const textContent = stripHtml(content).slice(0, 3000);
 
     return NextResponse.json(
       { title, content, textContent, siteName },
