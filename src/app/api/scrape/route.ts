@@ -224,27 +224,24 @@ export async function GET(req: NextRequest) {
 
     const titleMatch = raw.match(/<title[^>]*>([^<]+)<\/title>/i);
     const title = (titleMatch?.[1] || "Article")
-      .replace(/\s*[|\-–—]\s*(Medium|DEV Community|dev\.to|Freedium|plainenglish\.io|towards[^<]*).*$/i, "")
+      .replace(/\s*[|\-\u2013\u2014]\s*(Medium|DEV Community|dev\.to|Freedium|plainenglish\.io|towards[^<]*).*$/i, "")
       .replace(/\s*[|]\s*by\s+.+$/i, "")
       .replace(/\s*[|]\s*(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[^|]*$/i, "")
       .trim();
 
     if (isFromMedium && isPaywalled(raw)) {
       const freediumUrl = "https://freedium.cfd/" + url;
+      const paywallHtml = [
+        '<div style="text-align:center;padding:40px 20px;">',
+        '<p style="font-size:2rem;margin-bottom:12px;">' + "\uD83D\uDD12" + '</p>',
+        '<h2 style="font-family:sans-serif;font-size:1.1rem;font-weight:700;margin-bottom:8px;">Members Only</h2>',
+        '<p style="font-family:sans-serif;font-size:0.9rem;color:#666;margin-bottom:24px;">This article is behind Medium paywall.</p>',
+        '<a href="' + freediumUrl + '" target="_blank" rel="noopener noreferrer" style="display:inline-block;background:#1a8917;color:#fff;padding:12px 24px;border-radius:8px;font-family:sans-serif;font-weight:600;font-size:0.9rem;text-decoration:none;">Read on Freedium</a>',
+        '<p style="font-family:sans-serif;font-size:0.78rem;color:#999;margin-top:16px;">Freedium provides free access to Medium articles.</p>',
+        '</div>'
+      ].join("");
       return NextResponse.json(
-        {
-          title,
-          content: \`<div style="text-align:center;padding:40px 20px;">
-            <p style="font-size:2rem;margin-bottom:12px;">🔒</p>
-            <h2 style="font-family:sans-serif;font-size:1.1rem;font-weight:700;margin-bottom:8px;">Members Only</h2>
-            <p style="font-family:sans-serif;font-size:0.9rem;color:#666;margin-bottom:24px;">This article is behind Medium's paywall.</p>
-            <a href="\${freediumUrl}" target="_blank" rel="noopener noreferrer" style="display:inline-block;background:#1a8917;color:#fff;padding:12px 24px;border-radius:8px;font-family:sans-serif;font-weight:600;font-size:0.9rem;text-decoration:none;">Read on Freedium ↗</a>
-            <p style="font-family:sans-serif;font-size:0.78rem;color:#999;margin-top:16px;">Freedium provides free access to Medium articles.</p>
-          </div>\`,
-          textContent: "This article is behind Medium paywall. Open on Freedium.",
-          siteName,
-          paywalled: true
-        },
+        { title, content: paywallHtml, textContent: "Paywalled.", siteName, paywalled: true },
         { headers: { "Cache-Control": "public, s-maxage=300" } }
       );
     }
