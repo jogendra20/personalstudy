@@ -1,4 +1,5 @@
 "use client";
+import { getForgeKeys, saveForgeTask, getForgeTasks } from "@/lib/forge";
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -153,6 +154,7 @@ function GhostreaderPanel({ initialHighlight, articleText, fullText, onClose, da
 
 function ReadPageInner() {
   const router = useRouter();
+  const [forgeTriggered, setForgeTriggered] = useState(false);
   const searchParams = useSearchParams();
   const url = searchParams.get("url") || "";
   const [article, setArticle] = useState<ScrapedArticle | null>(null);
@@ -196,7 +198,7 @@ function ReadPageInner() {
       .then(r => r.ok ? r.json() : Promise.reject(new Error("HTTP " + r.status)))
       .then(data => {
         if (data.error) throw new Error(data.error);
-        setArticle(data); setLoading(false);
+        setArticle(data); setLoading(false); triggerForgeTask(meta, data.textContent || "");
         try { localStorage.setItem("onyx_article_" + btoa(url).slice(0, 40), JSON.stringify(data)); } catch {}
       })
       .catch(err => { setError(err.message || "Failed to load article."); setLoading(false); });
@@ -300,4 +302,38 @@ export default function ReadPage() {
       <ReadPageInner />
     </Suspense>
   );
+}
+
+// Forge auto-task — injected
+function triggerForgeTask(article: any, text: string) {
+  try {
+    const k = getForgeKeys();
+    if (!k.groq) return;
+    const existing = getForgeTasks().find((t: any) => t.articleUrl === article.url && t.status === "pending");
+    if (existing) return;
+    fetch("/api/forge", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "generate_task",
+        groqKey: k.groq,
+        articleTitle: article.title,
+        articleTag: article.tag,
+        articleText: text.slice(0, 2000),
+        weakArea: "",
+      }),
+    }).then(r => r.json()).then(data => {
+      if (data.task) {
+        saveForgeTask({
+          id: "task_" + Date.now(),
+          articleUrl: article.url,
+          articleTitle: article.title,
+          articleTag: article.tag || "General",
+          status: "pending",
+          createdAt: Date.now(),
+          ...data.task,
+        });
+      }
+    }).catch(() => {});
+  } catch {}
 }

@@ -3,7 +3,9 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { fetchFeed, clearFeedCache, Article, getSavedArticles, toggleSaveArticle, isArticleSaved, getGroqKey, setGroqKey } from "@/lib/api";
+import { getForgeTasks } from "@/lib/forge";
 import Sage from "@/components/sage";
+import ForgePanel, { ForgeAvatar } from "@/components/forge";
 
 const IconBookmark = ({ filled }: { filled?: boolean }) => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" /></svg>
@@ -261,6 +263,7 @@ export default function HomePage() {
   const [search, setSearch] = useState("");
   const [showSearch, setShowSearch] = useState(false);
   const [streak, setStreak] = useState({ count:0, today:false });
+  const [showForge, setShowForge] = useState(false);
   const pillRef = useRef<HTMLDivElement>(null);
   const activeButtonRef = useRef<HTMLButtonElement>(null);
   const [pillStyle, setPillStyle] = useState({ left:0, width:0 });
@@ -405,6 +408,8 @@ export default function HomePage() {
 
       {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
       {showBrief && <DailyBrief articles={articles} onOpen={(a) => { setShowBrief(false); openArticle(a); }} onClose={() => setShowBrief(false)} />}
+      <ForgeAvatar onClick={() => setShowForge(true)} hasPending={getForgeTasks().some(t => t.status === "pending")} />
+      {showForge && <ForgePanel onClose={() => setShowForge(false)} />}
       <Sage
         onFeedFilter={(tag) => setActiveTag(tag)}
         onSearch={(q) => { setSearch(q); setShowSearch(true); }}
