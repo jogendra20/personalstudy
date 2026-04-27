@@ -97,8 +97,7 @@ export default function SagePanel({ onClose, emotion, onFeedFilter, onSearch, cu
               model: "llama-3.3-70b-versatile",
               messages: [
                 { role: "system", content: systemMap[action] || systemMap.explain },
-                { role: "user", content: "Article:
-" + currentArticleText.slice(0, 4000) }
+                { role: "user", content: "Article:" + currentArticleText.slice(0, 4000) }
               ],
               max_tokens: 600, temperature: 0.5,
             }),
