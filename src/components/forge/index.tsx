@@ -113,8 +113,7 @@ function KeysSetup({ onSave }: { onSave: () => void }) {
     </div>
   );
 }
-DONE(getForgeKeys().tavily && getForgeKeys().groq)
-  );
+export default function Forge() {
   const profile = getForgeProfile();
 
   useEffect(() => { setTasks(getForgeTasks()); }, []);
