@@ -32,7 +32,7 @@ function TaskCard({ task, groqKey, onDone, onSkip }: {
 }) {
   const [answer, setAnswer] = useState(task.starterCode || "");
   const [checking, setChecking] = useState(false);
-  const [result, setResult] = useState<{ score:number; feedback:string; correct:boolean }|null>(null);
+  const [result, setResult] = useState<{score:number;feedback:string;correct:boolean}|null>(null);
   const typeIcon = { code:"⌨️", quiz:"❓", design:"🏗️", review:"📝", link:"🔗" }[task.type];
 
   async function handleSubmit() {
@@ -40,7 +40,7 @@ function TaskCard({ task, groqKey, onDone, onSkip }: {
     setChecking(true);
     try {
       const res = await fetch("/api/forge", {
-        method:"POST", headers:{ "Content-Type":"application/json" },
+        method:"POST", headers:{"Content-Type":"application/json"},
         body: JSON.stringify({ action:"check_answer", groqKey, answer, task }),
       });
       const data = await res.json();
@@ -64,9 +64,9 @@ function TaskCard({ task, groqKey, onDone, onSkip }: {
           Open Resource →
         </a>
       ) : result ? (
-        <div style={{ background: result.correct ? "rgba(34,197,94,0.08)" : "rgba(239,68,68,0.08)", border:`1px solid ${result.correct ? "rgba(34,197,94,0.3)" : "rgba(239,68,68,0.3)"}`, borderRadius:"10px", padding:"12px" }}>
+        <div style={{ background:result.correct ? "rgba(34,197,94,0.08)" : "rgba(239,68,68,0.08)", border:"1px solid "+(result.correct ? "rgba(34,197,94,0.3)" : "rgba(239,68,68,0.3)"), borderRadius:"10px", padding:"12px" }}>
           <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:8 }}>
-            <div style={{ width:44, height:44, borderRadius:"50%", border:`2px solid ${result.correct ? "#22c55e" : "#ef4444"}`, display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'DM Mono',monospace", fontWeight:700, color: result.correct ? "#22c55e" : "#ef4444" }}>{result.score}</div>
+            <div style={{ width:44, height:44, borderRadius:"50%", border:"2px solid "+(result.correct ? "#22c55e" : "#ef4444"), display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'DM Mono',monospace", fontWeight:700, color:result.correct ? "#22c55e" : "#ef4444" }}>{result.score}</div>
             <span style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:"0.85rem" }}>{result.correct ? "Correct ✓" : "Needs work"}</span>
           </div>
           <p style={{ fontSize:"0.78rem", color:"#444", lineHeight:1.6 }}>{result.feedback}</p>
@@ -75,10 +75,10 @@ function TaskCard({ task, groqKey, onDone, onSkip }: {
         <>
           <textarea value={answer} onChange={e => setAnswer(e.target.value)}
             placeholder={task.type === "code" ? "Write your code here..." : "Write your answer here..."}
-            style={{ width:"100%", minHeight: task.type === "code" ? "150px" : "90px", padding:"10px 12px", background:"#fff", border:"1px solid #e5e5ea", borderRadius:"8px", fontFamily:"'DM Mono',monospace", fontSize:"0.78rem", color:"#111", resize:"vertical", outline:"none", lineHeight:1.6, boxSizing:"border-box" }} />
+            style={{ width:"100%", minHeight:task.type === "code" ? "150px" : "90px", padding:"10px 12px", background:"#fff", border:"1px solid #e5e5ea", borderRadius:"8px", fontFamily:"'DM Mono',monospace", fontSize:"0.78rem", color:"#111", resize:"vertical", outline:"none", lineHeight:1.6, boxSizing:"border-box" }} />
           <div style={{ display:"flex", gap:8, marginTop:10 }}>
             <button onClick={handleSubmit} disabled={checking || !answer.trim()}
-              style={{ flex:1, padding:"9px", background:"#6366f1", border:"none", borderRadius:"8px", color:"#fff", fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:"0.82rem", cursor:"pointer", opacity: checking || !answer.trim() ? 0.5 : 1 }}>
+              style={{ flex:1, padding:"9px", background:"#6366f1", border:"none", borderRadius:"8px", color:"#fff", fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:"0.82rem", cursor:"pointer", opacity:checking || !answer.trim() ? 0.5 : 1 }}>
               {checking ? "Checking..." : "Submit →"}
             </button>
             <button onClick={onSkip}
@@ -96,8 +96,8 @@ function KeysSetup({ onSave }: { onSave: () => void }) {
   const existing = getForgeKeys();
   const [tavily, setTavily] = useState(existing.tavily || "");
   const [groq, setGroq] = useState(existing.groq || getGroqKey() || "");
-  function handle() { saveForgeKeys({ tavily: tavily.trim(), groq: groq.trim() }); onSave(); }
-  const inp = { width:"100%", padding:"10px 12px", background:"#f7f7f8", border:"1px solid #e5e5ea", borderRadius:"8px", fontFamily:"'DM Mono',monospace", fontSize:"0.8rem", color:"#111", outline:"none", boxSizing:"border-box" as const, marginBottom:12 };
+  function handle() { saveForgeKeys({ tavily:tavily.trim(), groq:groq.trim() }); onSave(); }
+  const inp: React.CSSProperties = { width:"100%", padding:"10px 12px", background:"#f7f7f8", border:"1px solid #e5e5ea", borderRadius:"8px", fontFamily:"'DM Mono',monospace", fontSize:"0.8rem", color:"#111", outline:"none", boxSizing:"border-box", marginBottom:12 };
   return (
     <div style={{ padding:"20px" }}>
       <p style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:"0.95rem", marginBottom:4 }}>Setup FORGE</p>
@@ -107,7 +107,7 @@ function KeysSetup({ onSave }: { onSave: () => void }) {
       <label style={{ fontSize:"0.75rem", color:"#666", fontFamily:"'DM Mono',monospace", display:"block", marginBottom:6 }}>GROQ API KEY</label>
       <input type="password" value={groq} onChange={e => setGroq(e.target.value)} placeholder="gsk_..." style={inp} />
       <button onClick={handle} disabled={!tavily.trim() || !groq.trim()}
-        style={{ width:"100%", padding:"11px", background:"#6366f1", border:"none", borderRadius:"8px", color:"#fff", fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:"0.88rem", cursor:"pointer", opacity: !tavily.trim() || !groq.trim() ? 0.5 : 1 }}>
+        style={{ width:"100%", padding:"11px", background:"#6366f1", border:"none", borderRadius:"8px", color:"#fff", fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:"0.88rem", cursor:"pointer", opacity:!tavily.trim() || !groq.trim() ? 0.5 : 1 }}>
         Activate FORGE
       </button>
     </div>
@@ -135,7 +135,125 @@ export default function ForgePanel({ onClose, articleContext }: {
   const [tasks, setTasks] = useState<ForgeTask[]>([]);
   const [generating, setGenerating] = useState(false);
   const [keys, setKeys] = useState(getForgeKeys());
-  const [setupDone, setSetupDone] = useState(git add -A && git commit -m "feat: FORGE agent — intel feed, task gen, answer checker" && git push(getForgeKeys().tavily && getForgeKeys().groq));
+  const [setupDone, setSetupDone] = useState(
+    cat > src/components/forge/index.tsx << 'DONE'
+"use client";
+import { useState, useEffect } from "react";
+import {
+  getForgeProfile, getForgeTasks, saveForgeTask,
+  updateForgeTask, getNewsCache, saveNewsCache,
+  getWeakAreaBias, getForgeKeys, saveForgeKeys,
+  ForgeTask, ForgeNewsItem,
+} from "@/lib/forge";
+import { getGroqKey } from "@/lib/api";
+
+const CAT_ORDER = ["indian","crypto","forex","global"] as const;
+const CAT_LABEL: Record<string,string> = {
+  indian:"🇮🇳 Indian Markets", crypto:"🪙 Crypto",
+  forex:"💱 Forex", global:"🌍 Global",
+};
+
+function NewsCard({ item }: { item: ForgeNewsItem }) {
+  return (
+    <a href={item.url} target="_blank" rel="noopener noreferrer"
+      style={{ display:"block", textDecoration:"none", padding:"11px 13px", background:"#f7f7f8", border:"1px solid #e5e5ea", borderRadius:"10px", marginBottom:"8px" }}>
+      <p style={{ fontFamily:"'Syne',sans-serif", fontWeight:600, fontSize:"0.82rem", color:"#111", lineHeight:1.4, marginBottom:4 }}>{item.title}</p>
+      <p style={{ fontSize:"0.73rem", color:"#666", lineHeight:1.5, marginBottom:5 }}>{item.summary}</p>
+      <span style={{ fontSize:"10px", fontFamily:"'DM Mono',monospace", color:"#999" }}>{item.source}</span>
+    </a>
+  );
+}
+
+function TaskCard({ task, groqKey, onDone, onSkip }: {
+  task: ForgeTask; groqKey: string;
+  onDone: (score: number, feedback: string) => void;
+  onSkip: () => void;
+}) {
+  const [answer, setAnswer] = useState(task.starterCode || "");
+  const [checking, setChecking] = useState(false);
+  const [result, setResult] = useState<{score:number;feedback:string;correct:boolean}|null>(null);
+  const typeIcon = { code:"⌨️", quiz:"❓", design:"🏗️", review:"📝", link:"🔗" }[task.type];
+
+  async function handleSubmit() {
+    if (!answer.trim() || checking) return;
+    setChecking(true);
+    try {
+      const res = await fetch("/api/forge", {
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({ action:"check_answer", groqKey, answer, task }),
+      });
+      const data = await res.json();
+      setResult(data);
+      onDone(data.score, data.feedback);
+    } catch(e:any) { setResult({ score:0, feedback:"Error: "+e.message, correct:false }); }
+    finally { setChecking(false); }
+  }
+
+  return (
+    <div style={{ background:"#f7f7f8", border:"1px solid #e5e5ea", borderRadius:"12px", padding:"15px", marginBottom:"12px" }}>
+      <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8 }}>
+        <span style={{ fontSize:"16px" }}>{typeIcon}</span>
+        <span style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:"0.85rem", color:"#111", flex:1 }}>{task.title}</span>
+        <span style={{ fontSize:"10px", fontFamily:"'DM Mono',monospace", color:"#6366f1", background:"rgba(99,102,241,0.1)", padding:"2px 8px", borderRadius:"20px" }}>{task.articleTag}</span>
+      </div>
+      <p style={{ fontSize:"0.78rem", color:"#444", lineHeight:1.6, marginBottom:12, whiteSpace:"pre-wrap" }}>{task.description}</p>
+      {task.type === "link" ? (
+        <a href={task.linkUrl} target="_blank" rel="noopener noreferrer"
+          style={{ display:"inline-block", padding:"8px 16px", background:"#6366f1", color:"#fff", borderRadius:"8px", fontFamily:"'Syne',sans-serif", fontWeight:600, fontSize:"0.8rem", textDecoration:"none" }}>
+          Open Resource →
+        </a>
+      ) : result ? (
+        <div style={{ background:result.correct ? "rgba(34,197,94,0.08)" : "rgba(239,68,68,0.08)", border:"1px solid "+(result.correct ? "rgba(34,197,94,0.3)" : "rgba(239,68,68,0.3)"), borderRadius:"10px", padding:"12px" }}>
+          <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:8 }}>
+            <div style={{ width:44, height:44, borderRadius:"50%", border:"2px solid "+(result.correct ? "#22c55e" : "#ef4444"), display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"'DM Mono',monospace", fontWeight:700, color:result.correct ? "#22c55e" : "#ef4444" }}>{result.score}</div>
+            <span style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:"0.85rem" }}>{result.correct ? "Correct ✓" : "Needs work"}</span>
+          </div>
+          <p style={{ fontSize:"0.78rem", color:"#444", lineHeight:1.6 }}>{result.feedback}</p>
+        </div>
+      ) : (
+        <>
+          <textarea value={answer} onChange={e => setAnswer(e.target.value)}
+            placeholder={task.type === "code" ? "Write your code here..." : "Write your answer here..."}
+            style={{ width:"100%", minHeight:task.type === "code" ? "150px" : "90px", padding:"10px 12px", background:"#fff", border:"1px solid #e5e5ea", borderRadius:"8px", fontFamily:"'DM Mono',monospace", fontSize:"0.78rem", color:"#111", resize:"vertical", outline:"none", lineHeight:1.6, boxSizing:"border-box" }} />
+          <div style={{ display:"flex", gap:8, marginTop:10 }}>
+            <button onClick={handleSubmit} disabled={checking || !answer.trim()}
+              style={{ flex:1, padding:"9px", background:"#6366f1", border:"none", borderRadius:"8px", color:"#fff", fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:"0.82rem", cursor:"pointer", opacity:checking || !answer.trim() ? 0.5 : 1 }}>
+              {checking ? "Checking..." : "Submit →"}
+            </button>
+            <button onClick={onSkip}
+              style={{ padding:"9px 14px", background:"none", border:"1px solid #e5e5ea", borderRadius:"8px", color:"#999", fontFamily:"'Syne',sans-serif", fontWeight:600, fontSize:"0.82rem", cursor:"pointer" }}>
+              Skip
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function KeysSetup({ onSave }: { onSave: () => void }) {
+  const existing = getForgeKeys();
+  const [tavily, setTavily] = useState(existing.tavily || "");
+  const [groq, setGroq] = useState(existing.groq || getGroqKey() || "");
+  function handle() { saveForgeKeys({ tavily:tavily.trim(), groq:groq.trim() }); onSave(); }
+  const inp: React.CSSProperties = { width:"100%", padding:"10px 12px", background:"#f7f7f8", border:"1px solid #e5e5ea", borderRadius:"8px", fontFamily:"'DM Mono',monospace", fontSize:"0.8rem", color:"#111", outline:"none", boxSizing:"border-box", marginBottom:12 };
+  return (
+    <div style={{ padding:"20px" }}>
+      <p style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:"0.95rem", marginBottom:4 }}>Setup FORGE</p>
+      <p style={{ fontSize:"0.75rem", color:"#999", fontFamily:"'DM Mono',monospace", marginBottom:20 }}>Keys stored locally only.</p>
+      <label style={{ fontSize:"0.75rem", color:"#666", fontFamily:"'DM Mono',monospace", display:"block", marginBottom:6 }}>TAVILY API KEY</label>
+      <input type="password" value={tavily} onChange={e => setTavily(e.target.value)} placeholder="tvly-..." style={inp} />
+      <label style={{ fontSize:"0.75rem", color:"#666", fontFamily:"'DM Mono',monospace", display:"block", marginBottom:6 }}>GROQ API KEY</label>
+      <input type="password" value={groq} onChange={e => setGroq(e.target.value)} placeholder="gsk_..." style={inp} />
+      <button onClick={handle} disabled={!tavily.trim() || !groq.trim()}
+        style={{ width:"100%", padding:"11px", background:"#6366f1", border:"none", borderRadius:"8px", color:"#fff", fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:"0.88rem", cursor:"pointer", opacity:!tavily.trim() || !groq.trim() ? 0.5 : 1 }}>
+        Activate FORGE
+      </button>
+    </div>
+  );
+}
+DONE(getForgeKeys().tavily && getForgeKeys().groq)
+  );
   const profile = getForgeProfile();
 
   useEffect(() => { setTasks(getForgeTasks()); }, []);
@@ -161,8 +279,8 @@ export default function ForgePanel({ onClose, articleContext }: {
     setNewsLoading(true); setNewsError("");
     try {
       const res = await fetch("/api/forge", {
-        method:"POST", headers:{ "Content-Type":"application/json" },
-        body: JSON.stringify({ action:"news", tavilyKey: k.tavily }),
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({ action:"news", tavilyKey:k.tavily }),
       });
       const data = await res.json();
       if (data.error) throw new Error(data.error);
@@ -180,15 +298,23 @@ export default function ForgePanel({ onClose, articleContext }: {
     try {
       const bias = getWeakAreaBias(profile);
       const res = await fetch("/api/forge", {
-        method:"POST", headers:{ "Content-Type":"application/json" },
+        method:"POST", headers:{"Content-Type":"application/json"},
         body: JSON.stringify({ action:"generate_task", groqKey:k.groq, articleTitle:articleContext.title, articleTag:articleContext.tag, articleText:articleContext.text, weakArea:bias }),
       });
       const data = await res.json();
       if (data.error) throw new Error(data.error);
-      const task: ForgeTask = { id:"task_"+Date.now(), articleUrl:articleContext.url, articleTitle:articleContext.title, articleTag:articleContext.tag, status:"pending", createdAt:Date.now(), ...data.task };
+      const task: ForgeTask = {
+        id:"task_"+Date.now(),
+        articleUrl:articleContext.url,
+        articleTitle:articleContext.title,
+        articleTag:articleContext.tag,
+        status:"pending",
+        createdAt:Date.now(),
+        ...data.task,
+      };
       saveForgeTask(task);
       setTasks(getForgeTasks());
-    } catch(e:any) { console.error("Forge:", e.message); }
+    } catch(e:any) { console.error("Forge:",e.message); }
     finally { setGenerating(false); }
   }
 
@@ -203,9 +329,10 @@ export default function ForgePanel({ onClose, articleContext }: {
 
   const pending = tasks.filter(t => t.status === "pending");
   const done = tasks.filter(t => t.status === "done");
+
   const tabBtn = (t: string, label: string) => (
     <button onClick={() => setTab(t as any)}
-      style={{ flex:1, padding:"8px", background: tab===t ? "#6366f1" : "none", color: tab===t ? "#fff" : "#999", border:"none", borderRadius:"8px", cursor:"pointer", fontFamily:"'Syne',sans-serif", fontWeight:600, fontSize:"0.78rem" }}>
+      style={{ flex:1, padding:"8px", background:tab===t ? "#6366f1" : "none", color:tab===t ? "#fff" : "#999", border:"none", borderRadius:"8px", cursor:"pointer", fontFamily:"'Syne',sans-serif", fontWeight:600, fontSize:"0.78rem" }}>
       {label}
     </button>
   );
@@ -230,21 +357,23 @@ export default function ForgePanel({ onClose, articleContext }: {
   return (
     <div style={{ position:"fixed", inset:0, zIndex:300, background:"rgba(10,10,11,0.7)", backdropFilter:"blur(8px)", display:"flex", alignItems:"flex-end" }} onClick={onClose}>
       <div onClick={e => e.stopPropagation()} style={{ width:"100%", maxWidth:"480px", margin:"0 auto", background:"#fff", borderRadius:"20px 20px 0 0", maxHeight:"82vh", display:"flex", flexDirection:"column" }}>
+
         <div style={{ padding:"16px 20px", borderBottom:"1px solid #f0f0f2", display:"flex", alignItems:"center", justifyContent:"space-between", flexShrink:0 }}>
           <div style={{ display:"flex", alignItems:"center", gap:8 }}>
             <span style={{ fontSize:"20px" }}>⚒️</span>
             <div>
               <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:"0.95rem" }}>FORGE</div>
               <div style={{ fontSize:"10px", color:"#999", fontFamily:"'DM Mono',monospace" }}>
-                {done.length} done · {pending.length} pending · avg {done.length ? Math.round(done.reduce((a,t)=>a+(t.score||0),0)/done.length) : 0}%
+                {done.length} done · {pending.length} pending · avg {done.length ? Math.round(done.reduce((a,t) => a+(t.score||0),0)/done.length) : 0}%
               </div>
             </div>
           </div>
           <button onClick={onClose} style={{ background:"none", border:"none", cursor:"pointer", fontSize:"20px", color:"#999" }}>×</button>
         </div>
+
         <div style={{ display:"flex", gap:4, padding:"8px 16px", background:"#f7f7f8", flexShrink:0 }}>
           {tabBtn("intel","📡 Intel")}
-          {tabBtn("tasks",`⚒️ Tasks${pending.length > 0 ? " ("+pending.length+")" : ""}`)}
+          {tabBtn("tasks","⚒️ Tasks"+(pending.length > 0 ? " ("+pending.length+")" : ""))}
           {tabBtn("setup","⚙️ Setup")}
         </div>
 
@@ -253,12 +382,14 @@ export default function ForgePanel({ onClose, articleContext }: {
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
               <span style={{ fontSize:"11px", fontFamily:"'DM Mono',monospace", color:"#999" }}>1hr cache</span>
               <button onClick={fetchNews} disabled={newsLoading}
-                style={{ fontSize:"11px", fontFamily:"'DM Mono',monospace", color:"#6366f1", background:"none", border:"none", cursor:"pointer", opacity: newsLoading ? 0.5 : 1 }}>
+                style={{ fontSize:"11px", fontFamily:"'DM Mono',monospace", color:"#6366f1", background:"none", border:"none", cursor:"pointer", opacity:newsLoading ? 0.5 : 1 }}>
                 {newsLoading ? "fetching..." : "↺ refresh"}
               </button>
             </div>
             {newsError && <p style={{ color:"#ef4444", fontSize:"0.78rem", marginBottom:12 }}>Error: {newsError}</p>}
-            {newsLoading && !news.length && <div style={{ textAlign:"center", padding:"40px 0", color:"#999", fontFamily:"'DM Mono',monospace", fontSize:"0.8rem" }}>Fetching live intel...</div>}
+            {newsLoading && !news.length && (
+              <div style={{ textAlign:"center", padding:"40px 0", color:"#999", fontFamily:"'DM Mono',monospace", fontSize:"0.8rem" }}>Fetching live intel...</div>
+            )}
             {CAT_ORDER.map(cat => {
               const items = news.filter(n => n.category === cat);
               if (!items.length) return null;
@@ -319,7 +450,7 @@ export default function ForgePanel({ onClose, articleContext }: {
             <KeysSetup onSave={() => { setKeys(getForgeKeys()); setSetupDone(true); setTab("intel"); }} />
             <div style={{ padding:"0 20px 20px" }}>
               <p style={{ fontFamily:"'DM Mono',monospace", fontSize:"11px", color:"#999", marginBottom:10 }}>WEAK AREAS</p>
-              {Object.entries(profile.weakAreas).sort((a,b)=>b[1]-a[1]).map(([tag,count]) => (
+              {Object.entries(profile.weakAreas).sort((a,b) => b[1]-a[1]).map(([tag,count]) => (
                 <div key={tag} style={{ display:"flex", justifyContent:"space-between", padding:"8px 12px", background:"#f7f7f8", borderRadius:"8px", marginBottom:6 }}>
                   <span style={{ fontFamily:"'Syne',sans-serif", fontWeight:600, fontSize:"0.8rem" }}>{tag}</span>
                   <span style={{ fontFamily:"'DM Mono',monospace", fontSize:"0.78rem", color:"#ef4444" }}>{count} skipped</span>
@@ -328,6 +459,7 @@ export default function ForgePanel({ onClose, articleContext }: {
             </div>
           </div>
         )}
+
       </div>
     </div>
   );
