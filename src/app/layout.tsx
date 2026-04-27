@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Sage from "@/components/sage";
+import PasswordGate from "@/components/PasswordGate";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -30,7 +31,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
       <meta name="apple-mobile-web-app-title" content="Onyx" />
     </head>
-      <body>{children}<script dangerouslySetInnerHTML={{ __html: `
+      <body><PasswordGate>{children}</PasswordGate><script dangerouslySetInnerHTML={{ __html: `
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('/sw.js');
