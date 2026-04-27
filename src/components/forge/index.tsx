@@ -123,7 +123,7 @@ export function ForgeAvatar({ onClick, hasPending }: { onClick: () => void; hasP
   );
 }
 
-export default function Forge() {
+export default function ForgePanel({ onClose, articleContext }: { onClose: () => void; articleContext?: { title:string; tag:string; text:string; url:string }|null }) {
   const profile = getForgeProfile();
 
   useEffect(() => { setTasks(getForgeTasks()); }, []);
