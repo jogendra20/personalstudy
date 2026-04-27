@@ -9,9 +9,10 @@ interface SageProps {
   onFeedFilter?: (tag: string) => void;
   onSearch?: (query: string) => void;
   currentArticleText?: string;
+  onGenerateForgeTask?: () => void;
 }
 
-export default function Sage({ onFeedFilter, onSearch, currentArticleText }: SageProps = {}) {
+export default function Sage({ onFeedFilter, onSearch, currentArticleText, onGenerateForgeTask }: SageProps = {}) {
   const [ready, setReady] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showPanel, setShowPanel] = useState(false);
@@ -55,7 +56,7 @@ export default function Sage({ onFeedFilter, onSearch, currentArticleText }: Sag
         />
       )}
       {showPanel && (
-        <SagePanel emotion={emotion} onClose={() => setShowPanel(false)} onFeedFilter={onFeedFilter} onSearch={onSearch} currentArticleText={currentArticleText} />
+        <SagePanel emotion={emotion} onClose={() => setShowPanel(false)} onFeedFilter={onFeedFilter} onSearch={onSearch} currentArticleText={currentArticleText} onGenerateForgeTask={onGenerateForgeTask} />
       )}
     </>
   );

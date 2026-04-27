@@ -131,6 +131,7 @@ export type SageIntent =
   | "GOAL_UPDATE"
   | "SEARCH"
   | "GHOSTREADER"
+  | "FORGE_TASK"
   | "CHAT";
 
 export interface SageCommand {
@@ -158,6 +159,7 @@ Intents:
 - GOAL_UPDATE: user wants to update goal progress. params: { goal: string, progress: string }
 - ARTICLE_OPEN: user wants to open a specific article. params: { title: string }
 - GHOSTREADER: user wants to explain/summarise current article. params: { action: "explain"|"summarise"|"eli5" }
+- FORGE_TASK: user wants to generate a practice task from current article. params: {}
 - CHAT: general conversation, questions, motivation, anything else. params: {}
 
 Tags available: AI, ML, Python, DSA, System Design, Web Dev, Programming, Trading, DevOps, Linux, Career, Security, Psychology
@@ -169,6 +171,9 @@ Examples:
 "explain this article" -> {"intent":"GHOSTREADER","params":{"action":"explain"}}
 "I am feeling lazy" -> {"intent":"CHAT","params":{}}
 "summarise" -> {"intent":"GHOSTREADER","params":{"action":"summarise"}}
+"make a task" -> {"intent":"FORGE_TASK","params":{}}
+"generate task" -> {"intent":"FORGE_TASK","params":{}}
+"practice this" -> {"intent":"FORGE_TASK","params":{}}
 "show python articles" -> {"intent":"FEED_FILTER","params":{"tag":"Python"}}
 "mark DSA goal 50 percent" -> {"intent":"GOAL_UPDATE","params":{"goal":"DSA","progress":"50"}}`
         },

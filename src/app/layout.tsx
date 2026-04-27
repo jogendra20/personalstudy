@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from "next";
-import Sage from "@/components/sage";
 import PasswordGate from "@/components/PasswordGate";
 import "./globals.css";
 
@@ -37,7 +36,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             });
           }
         ` }} />
-        <Sage />
       </body>
     </html>
   );

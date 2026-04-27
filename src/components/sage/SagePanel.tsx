@@ -9,9 +9,10 @@ interface SagePanelProps {
   onFeedFilter?: (tag: string) => void;
   onSearch?: (query: string) => void;
   currentArticleText?: string;
+  onGenerateForgeTask?: () => void;
 }
 
-export default function SagePanel({ onClose, emotion, onFeedFilter, onSearch, currentArticleText }: SagePanelProps) {
+export default function SagePanel({ onClose, emotion, onFeedFilter, onSearch, currentArticleText, onGenerateForgeTask }: SagePanelProps) {
   const profile = getProfile();
   const [tab, setTab] = useState<"chat"|"goals">("chat");
   const [input, setInput] = useState("");
@@ -74,6 +75,16 @@ export default function SagePanel({ onClose, emotion, onFeedFilter, onSearch, cu
         } else {
           addMsg("sage", `Could not find a goal matching "${cmd.params.goal}". Check your goals tab.`, false);
         }
+        break;
+      }
+      case "FORGE_TASK": {
+        if (!currentArticleText) {
+          addMsg("sage", "Open an article first, then I can generate a task from it.", false);
+          break;
+        }
+        onGenerateForgeTask?.();
+        addMsg("sage", "Generating a FORGE task from this article. ✓", true);
+        onClose();
         break;
       }
       case "GHOSTREADER": {

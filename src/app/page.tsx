@@ -413,6 +413,7 @@ export default function HomePage() {
       <Sage
         onFeedFilter={(tag) => setActiveTag(tag)}
         onSearch={(q) => { setSearch(q); setShowSearch(true); }}
+        onGenerateForgeTask={() => setShowForge(true)}
       />
     </div>
   );
