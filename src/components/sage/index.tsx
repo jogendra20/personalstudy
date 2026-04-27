@@ -5,7 +5,13 @@ import SageAvatar from "./SageAvatar";
 import SagePanel from "./SagePanel";
 import SageOnboarding from "./SageOnboarding";
 
-export default function Sage() {
+interface SageProps {
+  onFeedFilter?: (tag: string) => void;
+  onSearch?: (query: string) => void;
+  currentArticleText?: string;
+}
+
+export default function Sage({ onFeedFilter, onSearch, currentArticleText }: SageProps = {}) {
   const [ready, setReady] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showPanel, setShowPanel] = useState(false);
@@ -49,7 +55,7 @@ export default function Sage() {
         />
       )}
       {showPanel && (
-        <SagePanel emotion={emotion} onClose={() => setShowPanel(false)} />
+        <SagePanel emotion={emotion} onClose={() => setShowPanel(false)} onFeedFilter={onFeedFilter} onSearch={onSearch} currentArticleText={currentArticleText} />
       )}
     </>
   );
