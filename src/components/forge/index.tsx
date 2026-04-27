@@ -125,6 +125,19 @@ export function ForgeAvatar({ onClick, hasPending }: { onClick: () => void; hasP
 
 export default function ForgePanel({ onClose, articleContext }: { onClose: () => void; articleContext?: { title:string; tag:string; text:string; url:string }|null }) {
   const profile = getForgeProfile();
+  const [tab, setTab] = useState<"intel"|"tasks"|"setup">("intel");
+  const [news, setNews] = useState<ForgeNewsItem[]>([]);
+  const [newsLoading, setNewsLoading] = useState(false);
+  const [newsError, setNewsError] = useState("");
+  const [tasks, setTasks] = useState<ForgeTask[]>([]);
+  const [generating, setGenerating] = useState(false);
+  const [keys, setKeys] = useState(getForgeKeys());
+  const [setupDone, setSetupDone] = useState(getForgeKeys().tavily !== "" && getForgeKeys().groq !== "");
+  const [activeTask, setActiveTask] = useState<ForgeTask|null>(null);
+  const [answer, setAnswer] = useState("");
+  const [checking, setChecking] = useState(false);
+  const [result, setResult] = useState<{score:number;feedback:string;correct:boolean}|null>(null);
+
 
   useEffect(() => { setTasks(getForgeTasks()); }, []);
 
