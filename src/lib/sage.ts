@@ -122,3 +122,68 @@ Interests: ${profile.interests.join(", ")}
 Be direct, concise, personal. Push gently. No generic advice. Max 3 sentences.
 You know them well — reference their goals and progress naturally.`;
 }
+
+// intent router v2
+export type SageIntent =
+  | "FEED_FILTER"
+  | "ARTICLE_OPEN"
+  | "GOAL_SHOW"
+  | "GOAL_UPDATE"
+  | "SEARCH"
+  | "GHOSTREADER"
+  | "CHAT";
+
+export interface SageCommand {
+  intent: SageIntent;
+  params: Record<string, string>;
+}
+
+export async function classifyIntent(input: string, groqKey: string): Promise<SageCommand> {
+  const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: "Bearer " + groqKey },
+    body: JSON.stringify({
+      model: "llama-3.3-70b-versatile",
+      messages: [
+        {
+          role: "system",
+          content: `You are an intent classifier for a personal read-later app called Onyx with an AI agent called SAGE.
+Classify user input into exactly one intent and extract params.
+Return ONLY valid JSON, no explanation.
+
+Intents:
+- FEED_FILTER: user wants to see articles by topic/tag. params: { tag: string }
+- SEARCH: user wants to find articles matching a query. params: { query: string }
+- GOAL_SHOW: user wants to see their goals or progress. params: {}
+- GOAL_UPDATE: user wants to update goal progress. params: { goal: string, progress: string }
+- ARTICLE_OPEN: user wants to open a specific article. params: { title: string }
+- GHOSTREADER: user wants to explain/summarise current article. params: { action: "explain"|"summarise"|"eli5" }
+- CHAT: general conversation, questions, motivation, anything else. params: {}
+
+Tags available: AI, ML, Python, DSA, System Design, Web Dev, Programming, Trading, DevOps, Linux, Career, Security, Psychology
+
+Examples:
+"show me AI articles" -> {"intent":"FEED_FILTER","params":{"tag":"AI"}}
+"find something about neural networks" -> {"intent":"SEARCH","params":{"query":"neural networks"}}
+"how are my goals" -> {"intent":"GOAL_SHOW","params":{}}
+"explain this article" -> {"intent":"GHOSTREADER","params":{"action":"explain"}}
+"I am feeling lazy" -> {"intent":"CHAT","params":{}}
+"summarise" -> {"intent":"GHOSTREADER","params":{"action":"summarise"}}
+"show python articles" -> {"intent":"FEED_FILTER","params":{"tag":"Python"}}
+"mark DSA goal 50 percent" -> {"intent":"GOAL_UPDATE","params":{"goal":"DSA","progress":"50"}}`
+        },
+        { role: "user", content: input }
+      ],
+      max_tokens: 100,
+      temperature: 0.1,
+    }),
+  });
+  const data = await res.json();
+  try {
+    const text = data.choices[0].message.content.trim();
+    const clean = text.replace(/```json|```/g, "").trim();
+    return JSON.parse(clean);
+  } catch {
+    return { intent: "CHAT", params: {} };
+  }
+}
