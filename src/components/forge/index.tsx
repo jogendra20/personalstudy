@@ -113,6 +113,16 @@ function KeysSetup({ onSave }: { onSave: () => void }) {
     </div>
   );
 }
+export function ForgeAvatar({ onClick, hasPending }: { onClick: () => void; hasPending: boolean }) {
+  return (
+    <button onClick={onClick}
+      style={{ position:"fixed", bottom:"80px", left:"20px", zIndex:200, width:"52px", height:"52px", borderRadius:"50%", background:"#111", border:"2px solid #6366f1", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 4px 20px rgba(99,102,241,0.3)" }}>
+      <span style={{ fontSize:"22px" }}>⚒️</span>
+      {hasPending && <div style={{ position:"absolute", top:2, right:2, width:10, height:10, background:"#f59e0b", borderRadius:"50%", border:"2px solid #111" }} />}
+    </button>
+  );
+}
+
 export default function Forge() {
   const profile = getForgeProfile();
 
