@@ -404,6 +404,10 @@ export default function HomePage() {
 
       {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
       {showBrief && <DailyBrief articles={articles} onOpen={(a) => { setShowBrief(false); openArticle(a); }} onClose={() => setShowBrief(false)} />}
+      <Sage
+        onFeedFilter={(tag) => setActiveTag(tag)}
+        onSearch={(q) => { setSearchQuery(q); setShowSearch(true); }}
+      />
     </div>
   );
 }
