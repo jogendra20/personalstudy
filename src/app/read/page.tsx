@@ -198,7 +198,7 @@ function ReadPageInner() {
       .then(r => r.ok ? r.json() : Promise.reject(new Error("HTTP " + r.status)))
       .then(data => {
         if (data.error) throw new Error(data.error);
-        setArticle(data); setLoading(false); triggerForgeTask({ title: data.title, url: url, tag: meta?.tag || "General" }, data.textContent || "");
+        setArticle(data); setLoading(false); try { const m = JSON.parse(sessionStorage.getItem("onyx_article") || "{}"); triggerForgeTask({ title: data.title, url: url, tag: m?.tag || "General" }, data.textContent || ""); } catch { triggerForgeTask({ title: data.title, url: url, tag: "General" }, data.textContent || ""); }
         try { localStorage.setItem("onyx_article_" + btoa(url).slice(0, 40), JSON.stringify(data)); } catch {}
       })
       .catch(err => { setError(err.message || "Failed to load article."); setLoading(false); });
