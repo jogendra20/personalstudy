@@ -42,9 +42,9 @@ const IconFlame = () => (
 );
 
 const TAG_COLORS: Record<string, string> = {
-  "AI":"#c8ff40","ML":"#7c6fff","Python":"#ff6b35","Web Dev":"#40d9ff",
-  "Programming":"#ff40a0","System Design":"#ffbe40","Trading":"#40ffbe",
-  "DSA":"#ff9f40","DevOps":"#40c8ff","Linux":"#e0e040","Career":"#c840ff","Security":"#ff4040",
+  "AI":"#6366f1","ML":"#8b5cf6","Python":"#3b82f6","Web Dev":"#0ea5e9",
+  "Programming":"#6366f1","System Design":"#f59e0b","Trading":"#10b981",
+  "DSA":"#f59e0b","DevOps":"#0ea5e9","Linux":"#6b7280","Career":"#8b5cf6","Security":"#ef4444","Psychology":"#10b981",
 };
 function getTagColor(tag: string) { return TAG_COLORS[tag] || "#888"; }
 
@@ -318,7 +318,7 @@ export default function HomePage() {
               </div>
               <span style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:"1.1rem", letterSpacing:"-0.02em" }}>onyx</span>
               {streak.count > 0 && (
-                <span style={{ display:"flex", alignItems:"center", gap:"3px", fontSize:"11px", fontFamily:"'DM Mono',monospace", color:streak.today?"#ff6b35":"var(--text3)", background:streak.today?"rgba(255,107,53,0.1)":"var(--surface2)", border:"1px solid "+(streak.today?"rgba(255,107,53,0.3)":"var(--border)"), padding:"2px 8px", borderRadius:"20px" }}>
+                <span style={{ display:"flex", alignItems:"center", gap:"3px", fontSize:"11px", fontFamily:"'DM Mono',monospace", color:streak.today?"#f59e0b":"var(--text3)", background:streak.today?"rgba(245,158,11,0.1)":"var(--surface2)", border:"1px solid "+(streak.today?"rgba(245,158,11,0.3)":"var(--border)"), padding:"2px 8px", borderRadius:"20px" }}>
                   <IconFlame />{streak.count}d
                 </span>
               )}
@@ -401,14 +401,18 @@ export default function HomePage() {
           </div>
         ) : (
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"12px", marginTop:"16px" }}>
-            {displayed.map((article,i) => <ArticleCard key={article.id+i} article={article} onClick={() => openArticle(article)} />)}
+            {displayed.map((article,i) => (
+              <div key={article.id+i} style={{ gridColumn: !article.cover ? "span 2" : "span 1" }}>
+                <ArticleCard article={article} onClick={() => openArticle(article)} />
+              </div>
+            ))}
           </div>
         )}
       </main>
 
       {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
       {showBrief && <DailyBrief articles={articles} onOpen={(a) => { setShowBrief(false); openArticle(a); }} onClose={() => setShowBrief(false)} />}
-      <ForgeAvatar onClick={() => setShowForge(true)} hasPending={getForgeTasks().some(t => t.status === "pending")} />
+      {/* ForgeAvatar removed — use SAGE to trigger forge */
       {showForge && <ForgePanel onClose={() => setShowForge(false)} />}
       <Sage
         onFeedFilter={(tag) => setActiveTag(tag)}
