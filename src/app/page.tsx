@@ -402,7 +402,7 @@ export default function HomePage() {
         ) : (
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"12px", marginTop:"16px" }}>
             {displayed.map((article,i) => (
-              <div key={article.id+i} style={{ gridColumn: !article.cover ? "span 2" : "span 1" }}>
+              <div key={article.id+i} style={{ gridColumn: article.cover ? "span 2" : "span 1" }}>
                 <ArticleCard article={article} onClick={() => openArticle(article)} />
               </div>
             ))}
