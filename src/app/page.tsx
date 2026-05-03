@@ -412,7 +412,7 @@ export default function HomePage() {
 
       {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
       {showBrief && <DailyBrief articles={articles} onOpen={(a) => { setShowBrief(false); openArticle(a); }} onClose={() => setShowBrief(false)} />}
-      {/* ForgeAvatar removed — use SAGE to trigger forge */
+
       {showForge && <ForgePanel onClose={() => setShowForge(false)} />}
       <Sage
         onFeedFilter={(tag) => setActiveTag(tag)}
