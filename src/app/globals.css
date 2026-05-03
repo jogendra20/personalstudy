@@ -148,3 +148,23 @@ body { background: var(--bg); min-height: 100vh; overflow-x: hidden; }
   from { transform: translateY(0); opacity: 0.4; }
   to { transform: translateY(-6px); opacity: 1; }
 }
+
+.article-content p {
+  margin-bottom: 1.6em;
+  font-family: Georgia, 'Times New Roman', serif;
+  line-height: 1.85;
+}
+.article-content h2, .article-content h3 {
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  margin-top: 2em;
+  margin-bottom: 0.6em;
+}
+.article-content strong {
+  font-weight: 700;
+}
+.article-content a {
+  color: var(--accent3);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}

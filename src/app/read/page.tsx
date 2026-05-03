@@ -281,10 +281,10 @@ function ReadPageInner() {
                 <a href={article.freediumUrl} target="_blank" rel="noopener noreferrer" style={{ marginLeft: "auto", fontSize: "0.82rem", fontFamily: "'DM Mono', monospace", color: "var(--accent3)", fontWeight: 600, textDecoration: "none" }}>Read on Freedium ↗</a>
               </div>
             )}
-            <h1 style={{ fontFamily: "Georgia, serif", fontSize: "clamp(1.6rem, 4vw, 2rem)", fontWeight: 700, lineHeight: 1.2, marginBottom: "12px", letterSpacing: "-0.01em", color: textCol }}>{article.title}</h1>
+            <h1 style={{ fontFamily: "Georgia, serif", fontSize: "clamp(1.5rem, 4vw, 1.9rem)", fontWeight: 800, lineHeight: 1.2, marginBottom: "12px", letterSpacing: "-0.01em", color: textCol }}>{article.title}</h1>
             {article.byline && <p style={{ fontSize: "0.85rem", color: text3, fontFamily: "'DM Mono', monospace", marginBottom: "8px" }}>{article.byline}</p>}
             <div style={{ height: "1px", background: borderCol, margin: "24px 0" }} />
-            <div className="article-content" onMouseUp={handleTextSelect} onTouchEnd={handleTextSelect} style={{ fontSize: FONT_MAP[fontSize] }} dangerouslySetInnerHTML={{ __html: article.content }} />
+            <div className="article-content" onMouseUp={handleTextSelect} onTouchEnd={handleTextSelect} style={{ fontSize: FONT_MAP[fontSize], fontFamily: "Georgia, 'Times New Roman', serif", lineHeight: 1.85, color: textCol, letterSpacing: "0.01em" }} dangerouslySetInnerHTML={{ __html: article.content }} />
             <div style={{ marginTop: "48px", paddingTop: "24px", borderTop: "1px solid " + borderCol }}>
               <a href={url} target="_blank" rel="noopener noreferrer" style={{ fontSize: "0.82rem", fontFamily: "'DM Mono', monospace", color: text3 }}>View original article ↗</a>
             </div>
