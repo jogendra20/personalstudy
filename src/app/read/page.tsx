@@ -120,8 +120,8 @@ function GhostreaderPanel({ initialHighlight, articleText, fullText, onClose, da
         </div>
         <div style={{ display: "flex", gap: "8px", padding: "10px 20px", borderBottom: "1px solid " + ghostBorder, flexShrink: 0, overflowX: "auto" }}>
           <button disabled={loading} onClick={handleSummarise} style={chip}>✦ Summarise</button>
-          <button disabled={loading} onClick={() => sendMsg("Explain this article like I am a complete beginner.")} style={chip}>🎓 ELI5</button>
-          <button disabled={loading} onClick={() => sendMsg("What are the 3 most important takeaways?")} style={chip}>🔑 Key points</button>
+          <button disabled={loading} onClick={() => { const ctx = fullText.slice(0,3000); convRef.current = [{ role:"user", content:"Article:\n"+ctx+"\n\nExplain this article like I am a complete beginner. Use simple language, analogies, no jargon." }]; sendMsg("ELI5: Explain this article simply", true); }} style={chip}>🎓 ELI5</button>
+          <button disabled={loading} onClick={() => { const ctx = fullText.slice(0,3000); convRef.current = [{ role:"user", content:"Article:\n"+ctx+"\n\nWhat are the 3 most important takeaways from this article? Be specific, not generic." }]; sendMsg("Key points", true); }} style={chip}>🔑 Key points</button>
         </div>
         <div style={{ flex: 1, overflowY: "auto", padding: "16px 20px", display: "flex", flexDirection: "column", gap: "12px" }}>
           {noKey && (
@@ -198,7 +198,7 @@ function ReadPageInner() {
       .then(r => r.ok ? r.json() : Promise.reject(new Error("HTTP " + r.status)))
       .then(data => {
         if (data.error) throw new Error(data.error);
-        setArticle(data); setLoading(false); triggerForgeTask(meta, data.textContent || "");
+        setArticle(data); setLoading(false); triggerForgeTask({ title: data.title, url: url, tag: meta?.tag || "General" }, data.textContent || "");
         try { localStorage.setItem("onyx_article_" + btoa(url).slice(0, 40), JSON.stringify(data)); } catch {}
       })
       .catch(err => { setError(err.message || "Failed to load article."); setLoading(false); });
