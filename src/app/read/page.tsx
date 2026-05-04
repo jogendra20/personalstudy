@@ -236,12 +236,13 @@ function ReadPageInner() {
 
   async function generateFlowTask(text: string, tag: string, title: string) {
     const k = getForgeKeys();
-    if (!k.groq) return;
+    const groqKey = k.groq || getGroqKey();
+    if (!groqKey) return;
     setFlowTaskLoading(true);
     try {
       const res = await fetch("/api/forge", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "generate_task", groqKey: k.groq, articleText: text.slice(0, 2000), articleTag: tag, articleTitle: title, weakArea: "" }),
+        body: JSON.stringify({ action: "generate_task", groqKey: groqKey, articleText: text.slice(0, 2000), articleTag: tag, articleTitle: title, weakArea: "" }),
       });
       const data = await res.json();
       if (data.task) setFlowTask(data.task);
@@ -252,12 +253,13 @@ function ReadPageInner() {
   async function checkFlowAnswer() {
     if (!flowTask || !flowAnswer.trim()) return;
     const k = getForgeKeys();
-    if (!k.groq) return;
+    const groqKey = k.groq || getGroqKey();
+    if (!groqKey) return;
     setFlowChecking(true);
     try {
       const res = await fetch("/api/forge", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "check_answer", groqKey: k.groq, answer: flowAnswer, task: flowTask }),
+        body: JSON.stringify({ action: "check_answer", groqKey: groqKey, answer: flowAnswer, task: flowTask }),
       });
       const data = await res.json();
       setFlowResult(data);
