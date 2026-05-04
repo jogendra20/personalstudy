@@ -354,9 +354,7 @@ function ReadPageInner() {
                   <p style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: "0.9rem", color: dark ? "#fff" : "#111", marginBottom: "8px" }}>What did you just learn?</p>
                   <p style={{ fontFamily: "'DM Mono',monospace", fontSize: "0.75rem", color: dark ? "#888" : "#999", marginBottom: "16px", lineHeight: 1.6 }}>Write 3 things from memory. Don't look back at the article.</p>
                   <textarea value={recallText} onChange={e => setRecallText(e.target.value)}
-                    placeholder={"1. ...
-2. ...
-3. ..."}
+                    placeholder={"1. ...\n2. ...\n3. ..."}
                     style={{ width: "100%", minHeight: "140px", padding: "12px", background: dark ? "#111" : "#f7f7f8", border: "1px solid " + (dark ? "#333" : "#e5e5ea"), borderRadius: "10px", fontFamily: "'DM Mono',monospace", fontSize: "0.82rem", color: dark ? "#eee" : "#111", resize: "none", outline: "none", lineHeight: 1.7, boxSizing: "border-box" as const }} />
                   <button onClick={() => setFlowStep("task")} disabled={recallText.trim().length < 10}
                     style={{ width: "100%", marginTop: "12px", padding: "12px", background: "#6366f1", border: "none", borderRadius: "10px", color: "#fff", fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: "0.88rem", cursor: "pointer", opacity: recallText.trim().length < 10 ? 0.4 : 1 }}>
