@@ -1,40 +1,58 @@
-const CACHE = "onyx-v1";
-const SHELL = ["/", "/_next/static/", "/manifest.json"];
+const CACHE = "onyx-v2";
+const SHELL = ["/", "/manifest.json"];
 
 self.addEventListener("install", e => {
   e.waitUntil(
-    caches.open(CACHE).then(c => c.addAll(["/"]))
+    caches.open(CACHE).then(c => c.addAll(SHELL))
   );
   self.skipWaiting();
 });
 
 self.addEventListener("activate", e => {
-  e.waitUntil(caches.keys().then(keys =>
-    Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
-  ));
+  e.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
+    )
+  );
   self.clients.claim();
 });
 
 self.addEventListener("fetch", e => {
-  // Only cache GET requests
   if (e.request.method !== "GET") return;
+  const url = e.request.url;
 
-  // Network first for API calls, cache fallback
-  if (e.request.url.includes("/api/")) {
+  // Skip cross-origin except groq/tavily (let them fail offline gracefully)
+  if (!url.startsWith(self.location.origin) && 
+      !url.includes("groq.com") && 
+      !url.includes("tavily.com")) return;
+
+  // API calls — network only, no cache
+  if (url.includes("/api/scrape") || url.includes("/api/forge")) {
+    e.respondWith(fetch(e.request).catch(() => new Response(JSON.stringify({ error: "offline" }), { headers: { "Content-Type": "application/json" } })));
+    return;
+  }
+
+  // Next.js static assets — cache first, long lived
+  if (url.includes("/_next/static/")) {
     e.respondWith(
-      fetch(e.request).catch(() => caches.match(e.request))
+      caches.match(e.request).then(cached => {
+        if (cached) return cached;
+        return fetch(e.request).then(res => {
+          caches.open(CACHE).then(c => c.put(e.request, res.clone()));
+          return res;
+        });
+      })
     );
     return;
   }
 
-  // Cache first for everything else (app shell)
+  // Pages — network first, cache fallback
   e.respondWith(
-    caches.match(e.request).then(cached => {
-      const network = fetch(e.request).then(res => {
+    fetch(e.request)
+      .then(res => {
         caches.open(CACHE).then(c => c.put(e.request, res.clone()));
         return res;
-      });
-      return cached || network;
-    })
+      })
+      .catch(() => caches.match(e.request).then(cached => cached || caches.match("/")))
   );
 });
