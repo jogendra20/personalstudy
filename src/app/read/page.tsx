@@ -167,6 +167,14 @@ function ReadPageInner() {
   const [progress, setProgress] = useState(0);
   const [fontSize, setFontSize] = useState<FontSize>("md");
   const [dark, setDark] = useState(false);
+  const [showFlow, setShowFlow] = useState(false);
+  const [flowStep, setFlowStep] = useState<"recall"|"task"|"done">("recall");
+  const [recallText, setRecallText] = useState("");
+  const [flowTask, setFlowTask] = useState<any>(null);
+  const [flowTaskLoading, setFlowTaskLoading] = useState(false);
+  const [flowAnswer, setFlowAnswer] = useState("");
+  const [flowChecking, setFlowChecking] = useState(false);
+  const [flowResult, setFlowResult] = useState<any>(null);
 
   useEffect(() => {
     try {
@@ -224,6 +232,37 @@ function ReadPageInner() {
     const text = sel.toString().trim();
     if (text.length < 10) return;
     setHighlight(text); setShowGhost(true);
+  }
+
+  async function generateFlowTask(text: string, tag: string, title: string) {
+    const k = getForgeKeys();
+    if (!k.groq) return;
+    setFlowTaskLoading(true);
+    try {
+      const res = await fetch("/api/forge", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "generate_task", groqKey: k.groq, articleText: text.slice(0, 2000), articleTag: tag, articleTitle: title, weakArea: "" }),
+      });
+      const data = await res.json();
+      if (data.task) setFlowTask(data.task);
+    } catch {}
+    finally { setFlowTaskLoading(false); }
+  }
+
+  async function checkFlowAnswer() {
+    if (!flowTask || !flowAnswer.trim()) return;
+    const k = getForgeKeys();
+    if (!k.groq) return;
+    setFlowChecking(true);
+    try {
+      const res = await fetch("/api/forge", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "check_answer", groqKey: k.groq, answer: flowAnswer, task: flowTask }),
+      });
+      const data = await res.json();
+      setFlowResult(data);
+    } catch {}
+    finally { setFlowChecking(false); }
   }
 
   const bg = dark ? "#0d0d0e" : "var(--bg)";
@@ -286,11 +325,85 @@ function ReadPageInner() {
             <div style={{ height: "1px", background: borderCol, margin: "24px 0" }} />
             <div className="article-content" onMouseUp={handleTextSelect} onTouchEnd={handleTextSelect} style={{ fontSize: FONT_MAP[fontSize], fontFamily: "Georgia, 'Times New Roman', serif", lineHeight: 1.85, color: textCol, letterSpacing: "0.01em" }} dangerouslySetInnerHTML={{ __html: article.content }} />
             <div style={{ marginTop: "48px", paddingTop: "24px", borderTop: "1px solid " + borderCol }}>
+              <button onClick={() => { setShowFlow(true); setFlowStep("recall"); if (article) generateFlowTask(article.textContent || "", meta?.tag || "General", article.title); }}
+                style={{ width: "100%", padding: "16px", background: dark ? "#1a1a2e" : "#f0f0ff", border: "1px solid " + (dark ? "#6366f1" : "#c7d2fe"), borderRadius: "14px", cursor: "pointer", marginBottom: "16px", textAlign: "left" as const }}>
+                <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: "1rem", color: "#6366f1", marginBottom: "4px" }}>⚡ Start Learning Flow</div>
+                <div style={{ fontFamily: "'DM Mono',monospace", fontSize: "0.75rem", color: dark ? "#8888aa" : "#6b7280" }}>Recall → Task → Done · ~15 mins</div>
+              </button>
               <a href={url} target="_blank" rel="noopener noreferrer" style={{ fontSize: "0.82rem", fontFamily: "'DM Mono', monospace", color: text3 }}>View original article ↗</a>
             </div>
           </div>
         ) : null}
       </main>
+      {showFlow && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 250, background: "rgba(10,10,11,0.85)", backdropFilter: "blur(10px)", display: "flex", alignItems: "flex-end" }} onClick={() => setShowFlow(false)}>
+          <div onClick={e => e.stopPropagation()} style={{ width: "100%", maxWidth: "640px", margin: "0 auto", background: dark ? "#18181b" : "#fff", borderRadius: "20px 20px 0 0", maxHeight: "80vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+            <div style={{ padding: "16px 20px", borderBottom: "1px solid " + (dark ? "#2a2a2e" : "#f0f0f2"), display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
+              <div>
+                <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 800, fontSize: "0.95rem", color: dark ? "#fff" : "#111" }}>⚡ Learning Flow</div>
+                <div style={{ fontFamily: "'DM Mono',monospace", fontSize: "10px", color: dark ? "#666" : "#999", marginTop: "2px" }}>
+                  {flowStep === "recall" ? "Step 1 of 2 — Active Recall" : flowStep === "task" ? "Step 2 of 2 — Practice Task" : "Complete ✓"}
+                </div>
+              </div>
+              <button onClick={() => setShowFlow(false)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "20px", color: dark ? "#666" : "#999" }}>×</button>
+            </div>
+
+            <div style={{ flex: 1, overflowY: "auto", padding: "20px" }}>
+              {flowStep === "recall" && (
+                <div>
+                  <p style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: "0.9rem", color: dark ? "#fff" : "#111", marginBottom: "8px" }}>What did you just learn?</p>
+                  <p style={{ fontFamily: "'DM Mono',monospace", fontSize: "0.75rem", color: dark ? "#888" : "#999", marginBottom: "16px", lineHeight: 1.6 }}>Write 3 things from memory. Don't look back at the article.</p>
+                  <textarea value={recallText} onChange={e => setRecallText(e.target.value)}
+                    placeholder={"1. ...
+2. ...
+3. ..."}
+                    style={{ width: "100%", minHeight: "140px", padding: "12px", background: dark ? "#111" : "#f7f7f8", border: "1px solid " + (dark ? "#333" : "#e5e5ea"), borderRadius: "10px", fontFamily: "'DM Mono',monospace", fontSize: "0.82rem", color: dark ? "#eee" : "#111", resize: "none", outline: "none", lineHeight: 1.7, boxSizing: "border-box" as const }} />
+                  <button onClick={() => setFlowStep("task")} disabled={recallText.trim().length < 10}
+                    style={{ width: "100%", marginTop: "12px", padding: "12px", background: "#6366f1", border: "none", borderRadius: "10px", color: "#fff", fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: "0.88rem", cursor: "pointer", opacity: recallText.trim().length < 10 ? 0.4 : 1 }}>
+                    Next → Practice Task
+                  </button>
+                </div>
+              )}
+
+              {flowStep === "task" && (
+                <div>
+                  {flowTaskLoading && <div style={{ textAlign: "center", padding: "40px 0", fontFamily: "'DM Mono',monospace", fontSize: "0.8rem", color: "#6366f1" }}>⚒️ Generating task...</div>}
+                  {!flowTaskLoading && flowTask && !flowResult && (
+                    <>
+                      <div style={{ background: dark ? "#111" : "#f7f7f8", border: "1px solid " + (dark ? "#333" : "#e5e5ea"), borderRadius: "12px", padding: "14px", marginBottom: "14px" }}>
+                        <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: "0.88rem", color: dark ? "#fff" : "#111", marginBottom: "6px" }}>{flowTask.title}</div>
+                        <div style={{ fontFamily: "'DM Mono',monospace", fontSize: "0.78rem", color: dark ? "#aaa" : "#444", lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{flowTask.description}</div>
+                      </div>
+                      <textarea value={flowAnswer} onChange={e => setFlowAnswer(e.target.value)}
+                        placeholder={flowTask.type === "code" ? "Write your code here..." : "Write your answer here..."}
+                        style={{ width: "100%", minHeight: flowTask.type === "code" ? "160px" : "100px", padding: "12px", background: dark ? "#111" : "#fff", border: "1px solid " + (dark ? "#333" : "#e5e5ea"), borderRadius: "10px", fontFamily: "'DM Mono',monospace", fontSize: "0.8rem", color: dark ? "#eee" : "#111", resize: "vertical", outline: "none", lineHeight: 1.6, boxSizing: "border-box" as const }} />
+                      <button onClick={checkFlowAnswer} disabled={flowChecking || !flowAnswer.trim()}
+                        style={{ width: "100%", marginTop: "12px", padding: "12px", background: "#6366f1", border: "none", borderRadius: "10px", color: "#fff", fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: "0.88rem", cursor: "pointer", opacity: flowChecking || !flowAnswer.trim() ? 0.4 : 1 }}>
+                        {flowChecking ? "Checking..." : "Submit Answer →"}
+                      </button>
+                    </>
+                  )}
+                  {flowResult && (
+                    <div>
+                      <div style={{ background: flowResult.correct ? "rgba(34,197,94,0.08)" : "rgba(239,68,68,0.08)", border: "1px solid " + (flowResult.correct ? "rgba(34,197,94,0.3)" : "rgba(239,68,68,0.3)"), borderRadius: "12px", padding: "16px", marginBottom: "16px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "10px" }}>
+                          <div style={{ width: "48px", height: "48px", borderRadius: "50%", border: "2px solid " + (flowResult.correct ? "#22c55e" : "#ef4444"), display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'DM Mono',monospace", fontWeight: 700, fontSize: "1rem", color: flowResult.correct ? "#22c55e" : "#ef4444" }}>{flowResult.score}</div>
+                          <div style={{ fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: "0.9rem", color: dark ? "#fff" : "#111" }}>{flowResult.correct ? "Well done ✓" : "Keep going"}</div>
+                        </div>
+                        <div style={{ fontFamily: "'DM Mono',monospace", fontSize: "0.78rem", color: dark ? "#aaa" : "#444", lineHeight: 1.6 }}>{flowResult.feedback}</div>
+                      </div>
+                      <button onClick={() => { setShowFlow(false); setFlowStep("recall"); setRecallText(""); setFlowAnswer(""); setFlowResult(null); setFlowTask(null); }}
+                        style={{ width: "100%", padding: "12px", background: "#111", border: "none", borderRadius: "10px", color: "#fff", fontFamily: "'Syne',sans-serif", fontWeight: 700, fontSize: "0.88rem", cursor: "pointer" }}>
+                        Done ✓
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
       {showGhost && <GhostreaderPanel initialHighlight={highlight} articleText={article?.textContent || ""} fullText={article?.textContent || ""} onClose={() => { setShowGhost(false); setHighlight(""); }} dark={dark} />}
     </div>
   );
