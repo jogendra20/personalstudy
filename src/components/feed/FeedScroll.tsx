@@ -53,7 +53,7 @@ export default function FeedScroll({ onXP, onBadge }: FeedScrollProps) {
         source: a.source,
         tag: a.tag,
         summary: a.description || "",
-        image_url: a.cover || `https://source.unsplash.com/800x600/?${TAG_IMAGES[a.tag] || 'technology+code'}&sig=${i}`,
+        image_url: a.cover || "",
         score: 1,
         created_at: a.publishedAt,
       }));
