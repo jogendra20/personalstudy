@@ -72,13 +72,20 @@ export default function FeedCard({
         scrollSnapStop: "always",
       }}
     >
+      {/* Background: image if available, else tag-color gradient */}
       <div style={{
         position: "absolute", inset: 0,
-        background: article.image_url
-          ? `linear-gradient(180deg, rgba(0,0,0,0.3) 0%, #0a0a0a 100%), url(https://wsrv.nl/?url=${encodeURIComponent(article.image_url)}&w=800&output=webp) center/cover no-repeat`
-          : `radial-gradient(ellipse at 50% 0%, ${tagColor}40 0%, ${tagColor}10 40%, #0a0a0a 75%)`,
+        ...(article.image_url ? {
+          backgroundImage: `url(${article.image_url})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          filter: "brightness(0.35) saturate(1.2)",
+        } : {
+          background: `radial-gradient(ellipse at 50% 0%, ${tagColor}55 0%, ${tagColor}15 45%, #0a0a0a 80%)`,
+        }),
       }} />
 
+      {/* Dark overlay for text readability */}
       <div style={{
         position: "absolute", inset: 0,
         background: "linear-gradient(to bottom, transparent 20%, rgba(0,0,0,0.95) 100%)",
