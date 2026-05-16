@@ -29,6 +29,41 @@ function extractOgDescription(html: string): string | null {
   return match ? match[1] : null;
 }
 
+async function storeImage(prompt: string, articleId: string): Promise<string | null> {
+  try {
+    // Get image from Pollinations
+    const polUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=800&height=450&nologo=true`;
+    const imgRes = await fetch(polUrl, { signal: AbortSignal.timeout(15000) });
+    if (!imgRes.ok) return null;
+    const imgBytes = await imgRes.arrayBuffer();
+
+    // Upload to Supabase Storage
+    const filename = `${articleId}.jpg`;
+    const uploadRes = await fetch(
+      `${SUPABASE_URL}/storage/v1/object/article-images/${filename}`,
+      {
+        method: "POST",
+        headers: {
+          "apikey":        SUPABASE_KEY,
+          "Authorization": `Bearer ${SUPABASE_KEY}`,
+          "Content-Type":  "image/jpeg",
+          "x-upsert":      "true",
+        },
+        body: imgBytes,
+      }
+    );
+    if (!uploadRes.ok) return null;
+
+    // Return public URL
+    return `${SUPABASE_URL}/storage/v1/object/public/article-images/${filename}`;
+  } catch (e) {
+    console.error("Image store failed:", e);
+    return null;
+  }
+}
+
+
+
 // ── GET — fetch articles ──────────────────────────────────────────
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -78,26 +113,14 @@ export async function POST(req: NextRequest) {
     } catch {}
 
     // 2. If no OG image, generate via NEXUS
+    // 2. If no OG image, generate + store in Supabase
     if (!imageUrl) {
-      try {
-        const imgRes = await fetch(`${NEXUS_URL}/image`, {
-          method: "POST",
-          headers: nexusHeaders,
-          body: JSON.stringify({
-            prompt: `${title} ${tag || ""}`.trim(),
-            callback_url: "none",
-          }),
-        });
-        const imgData = await imgRes.json();
-        if (imgData.image_url) {
-  imageUrl = imgData.image_url;
-  imageSource = "pollinations";
-} else if (imgData.image_b64) {
-  // Store b64 as data URL
-  imageUrl = `data:image/jpeg;base64,${imgData.image_b64}`;
-  imageSource = "generated";
-}
-      } catch {}
+      const prompt = `${title} ${tag || ""}`.trim();
+      const stored = await storeImage(prompt, Date.now().toString());
+      if (stored) {
+        imageUrl    = stored;
+        imageSource = "supabase";
+      }
     }
 
     // 3. Generate summary via NEXUS if missing
