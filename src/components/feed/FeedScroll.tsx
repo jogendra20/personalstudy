@@ -31,6 +31,21 @@ export default function FeedScroll({ onXP, onBadge }: FeedScrollProps) {
       const raw = await res.json();
       // Map RSS shape → Article shape FeedCard expects
       console.log('RSS sample:', raw[0]);
+      const TAG_IMAGES: Record<string, string> = {
+        "AI": "artificial+intelligence+neural",
+        "ML": "machine+learning+data",
+        "Trading": "stock+market+trading+chart",
+        "DSA": "algorithm+code+programming",
+        "Python": "python+programming+code",
+        "System Design": "system+architecture+design",
+        "Web Dev": "web+development+coding",
+        "DevOps": "server+cloud+devops",
+        "Security": "cybersecurity+hacker",
+        "Career": "career+growth+success",
+        "Psychology": "mind+brain+psychology",
+        "Programming": "programming+software+code",
+        "Linux": "linux+terminal+code",
+      };
       const mapped = raw.map((a: any, i: number) => ({
         id: i,
         url: a.url,
@@ -38,7 +53,7 @@ export default function FeedScroll({ onXP, onBadge }: FeedScrollProps) {
         source: a.source,
         tag: a.tag,
         summary: a.description || "",
-        image_url: a.cover || "",
+        image_url: a.cover || `https://source.unsplash.com/800x600/?${TAG_IMAGES[a.tag] || 'technology+code'}&sig=${i}`,
         score: 1,
         created_at: a.publishedAt,
       }));
