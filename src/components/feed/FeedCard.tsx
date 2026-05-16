@@ -72,15 +72,14 @@ export default function FeedCard({
         scrollSnapStop: "always",
       }}
     >
-      {article.image_url && (
-        <div style={{
-          position: "absolute", inset: 0,
-          backgroundImage: `url(${article.image_url})`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          filter: "brightness(0.35) saturate(1.2)",
-        }} />
-      )}
+      <div style={{
+        position: "absolute", inset: 0,
+        backgroundImage: article.image_url ? `url(${article.image_url})` : "none",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        filter: "brightness(0.35) saturate(1.2)",
+        background: article.image_url ? undefined : `radial-gradient(ellipse at top, ${tagColor}18 0%, #0a0a0a 70%)`,
+      }} />
 
       <div style={{
         position: "absolute", inset: 0,

@@ -29,7 +29,19 @@ export default function FeedScroll({ onXP, onBadge }: FeedScrollProps) {
       const res = await fetch("/api/feed");
       if (!res.ok) throw new Error("Feed failed");
       const raw = await res.json();
-      setArticles(raw);
+      // Map RSS shape → Article shape FeedCard expects
+      const mapped = raw.map((a: any, i: number) => ({
+        id: i,
+        url: a.url,
+        title: a.title,
+        source: a.source,
+        tag: a.tag,
+        summary: a.description || "",
+        image_url: a.cover || "",
+        score: 1,
+        created_at: a.publishedAt,
+      }));
+      setArticles(mapped);
     } catch (e) {
       console.error("Feed load failed:", e);
     } finally {
