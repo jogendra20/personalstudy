@@ -90,9 +90,13 @@ export async function POST(req: NextRequest) {
         });
         const imgData = await imgRes.json();
         if (imgData.image_url) {
-          imageUrl = imgData.image_url;
-          imageSource = "pollinations";
-        }
+  imageUrl = imgData.image_url;
+  imageSource = "pollinations";
+} else if (imgData.image_b64) {
+  // Store b64 as data URL
+  imageUrl = `data:image/jpeg;base64,${imgData.image_b64}`;
+  imageSource = "generated";
+}
       } catch {}
     }
 
