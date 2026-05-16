@@ -167,7 +167,7 @@ export default function SagePanel({ onClose, emotion, onFeedFilter, onSearch, cu
 
     setLoading(true);
     try {
-      const cmd = await classifyIntent(text, key);
+      const cmd = await classifyIntent(text);
       await executeCommand(cmd, text);
     } catch (e: any) {
       addMsg("sage", "Error: " + e.message, false);
