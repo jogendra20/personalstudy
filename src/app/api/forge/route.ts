@@ -2,49 +2,53 @@ import { NextRequest, NextResponse } from "next/server";
 
 export const runtime = "edge";
 
-async function tavilySearch(query: string, key: string, max = 3) {
-  const res = await fetch("https://api.tavily.com/search", {
+const NEXUS_URL    = process.env.NEXUS_URL    || "https://nexus-56tm.onrender.com"\;
+const NEXUS_SECRET = process.env.NEXUS_SECRET || "";
+
+const nexusHeaders = {
+  "Content-Type": "application/json",
+  "X-API-Key":    NEXUS_SECRET,
+};
+
+async function nexusAsk(prompt: string, task = "reasoning"): Promise<string> {
+  const res = await fetch(`${NEXUS_URL}/ask`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ api_key: key, query, search_depth: "basic", max_results: max }),
+    headers: nexusHeaders,
+    body: JSON.stringify({ prompt, task }),
   });
-  if (!res.ok) throw new Error("Tavily " + res.status);
-  return res.json();
+  if (!res.ok) throw new Error(`NEXUS /ask failed: ${res.status}`);
+  const data = await res.json();
+  return data.response as string;
 }
 
-async function groqCall(groqKey: string, system: string, user: string, tokens = 400) {
-  const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+async function nexusSearch(query: string, max = 3): Promise<object[]> {
+  const res = await fetch(`${NEXUS_URL}/search`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: "Bearer " + groqKey },
-    body: JSON.stringify({
-      model: "llama-3.3-70b-versatile",
-      messages: [{ role: "system", content: system }, { role: "user", content: user }],
-      max_tokens: tokens,
-      temperature: 0.5,
-    }),
+    headers: nexusHeaders,
+    body: JSON.stringify({ query, max_results: max, freshness: "day" }),
   });
-  if (!res.ok) throw new Error("Groq " + res.status);
+  if (!res.ok) return [];
   const data = await res.json();
-  return data.choices[0].message.content as string;
+  return data.results || [];
 }
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { action, tavilyKey, groqKey, articleText, articleTag, articleTitle, weakArea, answer, task } = body;
+    const { action, articleText, articleTag, articleTitle, weakArea, answer, task } = body;
 
     if (action === "news") {
       const queries = [
-        { q: "NSE Nifty Sensex Indian stock market news today", cat: "indian" },
-        { q: "India RBI economy Dalal Street today", cat: "indian" },
-        { q: "Bitcoin Ethereum cryptocurrency market today", cat: "crypto" },
-        { q: "USD INR forex currency market today", cat: "forex" },
-        { q: "global stock futures indices markets today", cat: "global" },
+        { q: "NSE Nifty Sensex Indian stock market news today",   cat: "indian" },
+        { q: "India RBI economy Dalal Street today",              cat: "indian" },
+        { q: "Bitcoin Ethereum cryptocurrency market today",      cat: "crypto" },
+        { q: "USD INR forex currency market today",               cat: "forex"  },
+        { q: "global stock futures indices markets today",        cat: "global" },
       ];
 
       const settled = await Promise.allSettled(
         queries.map(({ q, cat }) =>
-          tavilySearch(q, tavilyKey, 3).then(d => ({ results: d.results || [], cat }))
+          nexusSearch(q, 3).then(results => ({ results, cat }))
         )
       );
 
@@ -55,9 +59,9 @@ export async function POST(req: NextRequest) {
           let source = item.url;
           try { source = new URL(item.url).hostname.replace("www.", ""); } catch {}
           items.push({
-            title: item.title,
-            summary: (item.content || "").slice(0, 200),
-            url: item.url,
+            title:    item.title,
+            summary:  (item.snippet || "").slice(0, 200),
+            url:      item.url,
             source,
             category: r.value.cat,
           });
@@ -69,9 +73,13 @@ export async function POST(req: NextRequest) {
 
     if (action === "generate_task") {
       const bias = weakArea ? `User is weak in: ${weakArea}. Bias toward this if relevant.` : "";
-      const system = `You are FORGE — a task generator for a personal learning app.
+      const prompt = `You are FORGE — a task generator for a personal learning app.
 Given an article, generate ONE practical task the user can do right now.
 ${bias}
+
+Article Tag: ${articleTag}
+Article Title: ${articleTitle}
+Article Content: ${(articleText || "").slice(0, 2000)}
 
 Return ONLY valid JSON, no explanation:
 {
@@ -91,27 +99,27 @@ Rules:
 - Vague/other → link to best resource
 - Task must be doable in 15-30 mins`;
 
-      const raw = await groqCall(groqKey, system,
-        `Tag: ${articleTag}\nTitle: ${articleTitle}\nContent: ${(articleText || "").slice(0, 2000)}`,
-        600
-      );
-      const clean = raw.replace(/```json|```/g, "").trim();
+      const raw   = await nexusAsk(prompt, "reasoning");
+      const clean = raw.replace(/\`\`\`json|\`\`\`/g, "").trim();
       return NextResponse.json({ task: JSON.parse(clean) });
     }
 
     if (action === "check_answer") {
-      const system = `You are FORGE checker. Evaluate the user answer for the task.
+      const prompt = `You are FORGE checker. Evaluate the user answer for the task.
 Return ONLY valid JSON:
 {
   "score": 0-100,
   "feedback": "2-3 sentences: what was right, what was wrong, how to improve",
   "correct": true or false
-}`;
-      const raw = await groqCall(groqKey, system,
-        `Task: ${task?.title}\nDescription: ${task?.description}\nUser answer:\n${answer}`,
-        300
-      );
-      const clean = raw.replace(/```json|```/g, "").trim();
+}
+
+Task: ${task?.title}
+Description: ${task?.description}
+User answer:
+${answer}`;
+
+      const raw   = await nexusAsk(prompt, "reasoning");
+      const clean = raw.replace(/\`\`\`json|\`\`\`/g, "").trim();
       return NextResponse.json(JSON.parse(clean));
     }
 
