@@ -112,10 +112,6 @@ export default function FeedScroll({ onXP, onBadge }: FeedScrollProps) {
       const total = XP_REWARDS.read + bonus;
       onXP(total, streak > 1 ? `🔥 ${streak} day streak!` : "Read article");
       updateQuestProgress(article.tag);
-    }
-    // Pass article metadata so read page has tag/readTime
-    const article = articles.find(a => a.url === url);
-    if (article) {
       try { sessionStorage.setItem('onyx_article', JSON.stringify(article)); } catch {}
     }
     window.location.href = `/read?url=${encodeURIComponent(url)}`;
