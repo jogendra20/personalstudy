@@ -30,6 +30,7 @@ export default function FeedScroll({ onXP, onBadge }: FeedScrollProps) {
       if (!res.ok) throw new Error("Feed failed");
       const raw = await res.json();
       // Map RSS shape → Article shape FeedCard expects
+      console.log('RSS sample:', raw[0]);
       const mapped = raw.map((a: any, i: number) => ({
         id: i,
         url: a.url,
@@ -112,7 +113,12 @@ export default function FeedScroll({ onXP, onBadge }: FeedScrollProps) {
       onXP(total, streak > 1 ? `🔥 ${streak} day streak!` : "Read article");
       updateQuestProgress(article.tag);
     }
-    window.open(url, "_blank");
+    // Pass article metadata so read page has tag/readTime
+    const article = articles.find(a => a.url === url);
+    if (article) {
+      try { sessionStorage.setItem('onyx_article', JSON.stringify(article)); } catch {}
+    }
+    window.location.href = `/read?url=${encodeURIComponent(url)}`;
   }
 
   if (loading) {
