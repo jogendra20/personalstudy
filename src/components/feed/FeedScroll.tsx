@@ -26,13 +26,10 @@ export default function FeedScroll({ onXP, onBadge }: FeedScrollProps) {
   async function loadFeed() {
     setLoading(true);
     try {
-      const [raw, actions] = await Promise.all([
-        getArticles(30),
-        getUserActions(),
-      ]);
-      const ranked = rankArticles(raw, actions, null);
-      const deduped = deduplicateArticles(ranked);
-      setArticles(deduped);
+      const res = await fetch("/api/feed");
+      if (!res.ok) throw new Error("Feed failed");
+      const raw = await res.json();
+      setArticles(raw);
     } catch (e) {
       console.error("Feed load failed:", e);
     } finally {
