@@ -74,7 +74,7 @@ export default function FeedCard({
     >
       <div style={{
         position: "absolute", inset: 0,
-        backgroundImage: article.image_url ? `url(${article.image_url})` : "none",
+        backgroundImage: article.image_url ? `url(https://wsrv.nl/?url=${encodeURIComponent(article.image_url)}&w=800&output=webp)` : "none",
         backgroundSize: "cover",
         backgroundPosition: "center",
         filter: "brightness(0.35) saturate(1.2)",
