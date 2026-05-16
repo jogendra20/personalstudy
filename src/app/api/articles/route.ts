@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 const SUPABASE_URL = process.env.SUPABASE_URL || "";
 const SUPABASE_KEY = process.env.SUPABASE_KEY || "";
-const NEXUS_URL    = process.env.NEXUS_URL || "https://nexus-56tm.onrender.com"\;
+const NEXUS_URL    = process.env.NEXUS_URL || "https://nexus-56tm.onrender.com";
 const NEXUS_SECRET = process.env.NEXUS_SECRET || "";
 
 const dbHeaders = {

@@ -3,7 +3,7 @@
  * All AI + search calls go through NEXUS
  */
 
-const NEXUS_URL = process.env.NEXUS_URL || "https://nexus-56tm.onrender.com"\;
+const NEXUS_URL = process.env.NEXUS_URL || "https://nexus-56tm.onrender.com";
 const NEXUS_SECRET = process.env.NEXUS_SECRET || "";
 
 const headers = {
