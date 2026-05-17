@@ -2,9 +2,7 @@
 
 import { useState, useCallback } from "react";
 import FeedScroll from "@/components/feed/FeedScroll";
-import XPBar from "@/components/gamification/XPBar";
 
-interface XPFlash {
   amount: number;
   reason: string;
 }
@@ -15,12 +13,8 @@ interface BadgeToast {
 }
 
 export default function Home() {
-  const [xpFlash, setXpFlash] = useState<XPFlash | null>(null);
   const [badges, setBadges]   = useState<BadgeToast[]>([]);
 
-  const handleXP = useCallback((amount: number, reason: string) => {
-    setXpFlash({ amount, reason });
-    setTimeout(() => setXpFlash(null), 2500);
   }, []);
 
   const handleBadge = useCallback((name: string) => {
@@ -39,8 +33,6 @@ export default function Home() {
       overflow: "hidden",
       background: "#FAF9F5",
     }}>
-      <FeedScroll onXP={handleXP} onBadge={handleBadge} />
-      <XPBar flash={xpFlash} />
 
       <div style={{
         position: "fixed", top: "80px", right: "16px",
