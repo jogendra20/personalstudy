@@ -3,18 +3,16 @@
 import { useState, useCallback } from "react";
 import FeedScroll from "@/components/feed/FeedScroll";
 
-  amount: number;
-  reason: string;
-}
-
 interface BadgeToast {
   name: string;
   id: number;
 }
 
 export default function Home() {
-  const [badges, setBadges]   = useState<BadgeToast[]>([]);
+  const [badges, setBadges] = useState<BadgeToast[]>([]);
 
+  const handleXP = useCallback((amount: number, reason: string) => {
+    console.log(`+${amount} XP: ${reason}`);
   }, []);
 
   const handleBadge = useCallback((name: string) => {
@@ -33,6 +31,7 @@ export default function Home() {
       overflow: "hidden",
       background: "#FAF9F5",
     }}>
+      <FeedScroll onXP={handleXP} onBadge={handleBadge} />
 
       <div style={{
         position: "fixed", top: "80px", right: "16px",
@@ -43,22 +42,15 @@ export default function Home() {
           <div key={badge.id} style={{
             background: "rgba(255,255,255,0.95)",
             border: "1px solid rgba(212,175,55,0.3)",
-            borderRadius: "12px",
-            padding: "10px 16px",
+            borderRadius: "12px", padding: "10px 16px",
             animation: "badgeIn 3s ease forwards",
             backdropFilter: "blur(10px)",
             boxShadow: "0 4px 16px rgba(0,0,0,0.08)",
           }}>
-            <p style={{
-              color: "#D4AF37", fontSize: "12px",
-              fontWeight: 700, margin: 0,
-            }}>
+            <p style={{ color: "#D4AF37", fontSize: "12px", fontWeight: 700, margin: 0 }}>
               🏆 Badge Unlocked!
             </p>
-            <p style={{
-              color: "#555", fontSize: "11px",
-              margin: "2px 0 0",
-            }}>
+            <p style={{ color: "#555", fontSize: "11px", margin: "2px 0 0" }}>
               {badge.name}
             </p>
           </div>
