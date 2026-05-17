@@ -284,7 +284,7 @@ export default function FeedCard({
         <h2
           onClick={(e) => { e.stopPropagation(); handleRead(); }}
           style={{
-            fontSize: "clamp(17px, 4.5vw, 24px)",
+            fontSize: "clamp(20px, 5.5vw, 28px)",
             fontWeight: 700,
             color: "#111",
             lineHeight: 1.2,
@@ -297,61 +297,35 @@ export default function FeedCard({
           {article.title}
         </h2>
 
-        {/* Context — summary with read time */}
+        {/* Context */}
         {article.summary && (
-          <div style={{
-            background: "rgba(212,175,55,0.04)",
-            borderLeft: "2px solid #D4AF37",
-            borderRadius: "0 8px 8px 0",
-            padding: "8px 12px",
+          <p style={{
+            fontSize: "13px", color: "#666",
+            lineHeight: 1.7, margin: 0,
+            display: "-webkit-box",
+            WebkitLineClamp: 3,
+            WebkitBoxOrient: "vertical",
+            overflow: "hidden",
+            fontWeight: 300,
+            letterSpacing: "0.01em",
           }}>
-            <p style={{
-              fontSize: "12px", color: "#666",
-              lineHeight: 1.6, margin: 0,
-              display: "-webkit-box",
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: "vertical",
-              overflow: "hidden",
-            }}>
-              {article.summary}
-            </p>
-            <span style={{
-              fontSize: "10px", color: "#D4AF37",
-              fontWeight: 600, marginTop: "4px",
-              display: "block",
-            }}>
-              {readTime} min read
-            </span>
-          </div>
+            {article.summary}
+          </p>
         )}
 
-        {/* Affinity indicator */}
-        <div style={{
-          display: "flex", alignItems: "center", gap: "8px",
-        }}>
+        {/* Read time + tag pill */}
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <span style={{
-            fontSize: "9px", color: "#bbb",
-            fontWeight: 600, letterSpacing: "0.1em",
-            textTransform: "uppercase",
+            background: "rgba(212,175,55,0.1)",
+            border: "1px solid rgba(212,175,55,0.2)",
+            borderRadius: "20px", padding: "3px 10px",
+            fontSize: "10px", color: "#786028", fontWeight: 600,
           }}>
-            Your interest
+            {readTime} min read
           </span>
-          <div style={{
-            flex: 1, height: "3px",
-            background: "rgba(212,175,55,0.15)",
-            borderRadius: "2px", overflow: "hidden",
-          }}>
-            <div style={{
-              height: "100%",
-              width: `${affinityPct}%`,
-              background: "#D4AF37",
-              borderRadius: "2px",
-              transition: "width 0.8s ease",
-            }} />
-          </div>
-          <span style={{ fontSize: "9px", color: "#D4AF37", fontWeight: 700 }}>
-            {affinityPct}%
-          </span>
+          <span style={{ fontSize: "10px", color: "#bbb" }}>{reads} reads</span>
+          <span style={{ fontSize: "10px", color: "#bbb" }}>·</span>
+          <span style={{ fontSize: "10px", color: "#bbb" }}>{timeAgo}</span>
         </div>
 
         {/* Bottom actions */}
@@ -359,22 +333,27 @@ export default function FeedCard({
           display: "flex", alignItems: "center",
           justifyContent: "space-between",
           marginTop: "auto",
+          padding: "12px 0 4px",
+          borderTop: "1px solid rgba(0,0,0,0.06)",
         }}>
           {/* Read CTA */}
           <button
             onClick={(e) => { e.stopPropagation(); handleRead(); }}
             style={{
-              display: "flex", alignItems: "center", gap: "8px",
+              display: "flex", alignItems: "center", gap: "10px",
               background: "#111", color: "#fff",
-              fontSize: "10px", fontWeight: 700,
-              letterSpacing: "0.1em", textTransform: "uppercase",
-              padding: "12px 20px", borderRadius: "999px",
+              fontSize: "11px", fontWeight: 700,
+              letterSpacing: "0.08em", textTransform: "uppercase",
+              padding: "14px 24px", borderRadius: "999px",
               border: "none", cursor: "pointer",
-              boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+              boxShadow: "0 8px 24px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.1)",
+              transition: "all 0.2s",
             }}
           >
             <span>Read Article</span>
-            <span style={{ color: "#D4AF37", fontSize: "14px" }}>›</span>
+            <span style={{
+              color: "#D4AF37", fontSize: "16px", fontWeight: 300,
+            }}>›</span>
           </button>
 
           {/* Icon actions */}
