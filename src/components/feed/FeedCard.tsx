@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { Article } from "@/lib/algorithm";
 
 interface FeedCardProps {
@@ -13,47 +13,29 @@ interface FeedCardProps {
 }
 
 const TAG_COLORS: Record<string, string> = {
-  "AI":            "#00ff88",
-  "ML":            "#00ccff",
-  "Trading":       "#ffaa00",
-  "DSA":           "#ff6688",
-  "Python":        "#3776ab",
-  "System Design": "#cc88ff",
-  "Web Dev":       "#ff8844",
-  "DevOps":        "#44bbff",
-  "Security":      "#ff4444",
-  "Career":        "#ffdd44",
-  "Psychology":    "#ff99cc",
-  "Programming":   "#88ff44",
-};
-
-const TAG_GRADIENTS: Record<string, string> = {
-  "AI":            "linear-gradient(135deg, #001a0d, #003320)",
-  "ML":            "linear-gradient(135deg, #001a33, #003366)",
-  "Trading":       "linear-gradient(135deg, #1a0e00, #332200)",
-  "DSA":           "linear-gradient(135deg, #1a0008, #330010)",
-  "Python":        "linear-gradient(135deg, #001133, #002266)",
-  "System Design": "linear-gradient(135deg, #110022, #220044)",
-  "Web Dev":       "linear-gradient(135deg, #1a0800, #331500)",
-  "DevOps":        "linear-gradient(135deg, #001a33, #003366)",
-  "Security":      "linear-gradient(135deg, #1a0000, #330000)",
-  "Career":        "linear-gradient(135deg, #1a1400, #332800)",
-  "Psychology":    "linear-gradient(135deg, #1a0011, #330022)",
-  "Programming":   "linear-gradient(135deg, #0a1a00, #143300)",
+  "AI":            "#D4AF37",
+  "ML":            "#D4AF37",
+  "Trading":       "#D4AF37",
+  "DSA":           "#D4AF37",
+  "Python":        "#D4AF37",
+  "System Design": "#D4AF37",
+  "Web Dev":       "#D4AF37",
+  "DevOps":        "#D4AF37",
+  "Security":      "#D4AF37",
+  "Career":        "#D4AF37",
+  "Psychology":    "#D4AF37",
+  "Programming":   "#D4AF37",
 };
 
 export default function FeedCard({
   article, onLike, onSkip, onSave, onRead, isActive
 }: FeedCardProps) {
-  const [liked, setLiked]       = useState(false);
-  const [saved, setSaved]       = useState(false);
-  const [tapped, setTapped]     = useState(false);
+  const [liked, setLiked]         = useState(false);
+  const [saved, setSaved]         = useState(false);
+  const [tapped, setTapped]       = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
-  const [readProgress] = useState(Math.floor(Math.random() * 40));
-  const lastTap = useRef(0);
-
-  const tagColor    = TAG_COLORS[article.tag]    || "#ffffff";
-  const tagGradient = TAG_GRADIENTS[article.tag] || "linear-gradient(135deg, #0a0a0a, #1a1a1a)";
+  const [voted, setVoted]         = useState<string | null>(null);
+  const lastTap                   = useRef(0);
 
   const domain = (() => {
     try { return new URL(article.url).hostname.replace("www.", ""); }
@@ -75,6 +57,13 @@ export default function FeedCard({
     lastTap.current = now;
   }
 
+  const tagEmoji: Record<string, string> = {
+    "AI": "🤖", "ML": "🧠", "Trading": "📈", "DSA": "🧮",
+    "Python": "🐍", "System Design": "🏗️", "Web Dev": "🌐",
+    "DevOps": "⚙️", "Security": "🔐", "Career": "🎯",
+    "Psychology": "🧬", "Programming": "💻",
+  };
+
   return (
     <div
       onClick={handleDoubleTap}
@@ -82,305 +71,349 @@ export default function FeedCard({
         position: "relative",
         width: "100%",
         height: "100svh",
-        background: tagGradient,
+        background: "#FAF9F5",
         display: "flex",
         flexDirection: "column",
         scrollSnapAlign: "start",
         scrollSnapStop: "always",
-        padding: "0 16px",
-        overflowY: "auto",
+        overflow: "hidden",
+        fontFamily: "'Inter', sans-serif",
       }}
     >
-      {/* Subtle noise texture overlay */}
+      {/* Top gold reading progress line */}
       <div style={{
-        position: "absolute", inset: 0,
-        backgroundImage: `radial-gradient(circle at 20% 50%, ${tagColor}08 0%, transparent 60%),
-                          radial-gradient(circle at 80% 20%, ${tagColor}05 0%, transparent 50%)`,
-        pointerEvents: "none",
-      }} />
-
-      {/* Double tap heart */}
-      {tapped && (
+        position: "absolute", top: 0, left: 0, right: 0,
+        height: "2px", background: "rgba(212,175,55,0.15)", zIndex: 50,
+      }}>
         <div style={{
-          position: "absolute", inset: 0, zIndex: 10,
-          display: "flex", alignItems: "center", justifyContent: "center",
-          pointerEvents: "none",
-        }}>
-          <span style={{
-            fontSize: "80px",
-            animation: "heartPop 0.8s ease forwards",
-          }}>❤️</span>
-        </div>
-      )}
+          height: "100%", width: `${Math.random() * 40 + 10}%`,
+          background: "linear-gradient(90deg, #D4AF37aa, #D4AF37, #f0d060)",
+          transition: "width 0.3s",
+        }} />
+      </div>
 
-      {/* Top bar */}
+      {/* Header */}
       <div style={{
+        position: "absolute", top: 0, left: 0, right: 0,
+        height: "64px", zIndex: 40,
         display: "flex", alignItems: "center",
         justifyContent: "space-between",
-        paddingTop: "56px", paddingBottom: "12px",
-        position: "relative", zIndex: 2,
+        padding: "0 20px", paddingTop: "12px",
       }}>
-        <span style={{
-          background: tagColor,
-          color: "#000",
-          fontSize: "10px",
-          fontWeight: 800,
-          letterSpacing: "0.1em",
-          padding: "5px 12px",
-          borderRadius: "20px",
-          fontFamily: "monospace",
-          textTransform: "uppercase",
-          boxShadow: `0 0 12px ${tagColor}66`,
-        }}>
-          {article.tag}
-        </span>
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
           <span style={{
-            color: "rgba(255,255,255,0.4)",
-            fontSize: "11px",
-            fontFamily: "monospace",
+            fontSize: "10px", fontWeight: 800,
+            letterSpacing: "0.3em", color: "#111",
+            textTransform: "uppercase",
+          }}>ONYX</span>
+          <div style={{
+            width: "6px", height: "6px",
+            borderRadius: "50%", background: "#D4AF37",
+          }} />
+        </div>
+        <div style={{
+          display: "flex", alignItems: "center", gap: "6px",
+          background: "rgba(255,255,255,0.85)",
+          backdropFilter: "blur(8px)",
+          border: "1px solid rgba(212,175,55,0.2)",
+          borderRadius: "20px", padding: "4px 12px",
+        }}>
+          <div style={{
+            width: "6px", height: "6px",
+            borderRadius: "50%", background: "#D4AF37",
+            animation: "pulse 2s infinite",
+          }} />
+          <span style={{
+            fontSize: "9px", fontWeight: 700,
+            letterSpacing: "0.15em", color: "#786028",
+            textTransform: "uppercase",
           }}>
-            ⏱ {readTime} min
+            {article.tag}
           </span>
         </div>
       </div>
 
-      {/* IMAGE — sharp, contained, glowing */}
+      {/* IMAGE — top 50% */}
       <div style={{
-        position: "relative", zIndex: 2,
-        borderRadius: "16px",
-        overflow: "hidden",
-        height: "220px",
-        flexShrink: 0,
-        boxShadow: `0 0 0 1px ${tagColor}33, 0 8px 32px rgba(0,0,0,0.6), 0 0 60px ${tagColor}11`,
-        background: `linear-gradient(135deg, #111, #1a1a1a)`,
-      }}>
+        position: "relative",
+        height: "50%", width: "100%",
+        overflow: "hidden", flexShrink: 0,
+        cursor: "pointer",
+      }}
+        onClick={(e) => { e.stopPropagation(); handleDoubleTap(); }}
+      >
+        {/* Shimmer */}
+        {!imgLoaded && (
+          <div style={{
+            position: "absolute", inset: 0,
+            background: "linear-gradient(90deg, #f0ede6 25%, #e8e4db 50%, #f0ede6 75%)",
+            backgroundSize: "200% 100%",
+            animation: "shimmer 1.5s infinite",
+          }} />
+        )}
+
         {article.image_url ? (
-          <>
-            {!imgLoaded && (
-              <div style={{
-                position: "absolute", inset: 0,
-                background: `linear-gradient(90deg, #1a1a1a 25%, #2a2a2a 50%, #1a1a1a 75%)`,
-                backgroundSize: "200% 100%",
-                animation: "shimmer 1.5s infinite",
-              }} />
-            )}
-            <img
-              src={article.image_url}
-              alt={article.title}
-              onLoad={() => setImgLoaded(true)}
-              style={{
-                width: "100%",
-                height: "100%",
-                objectFit: "cover",
-                opacity: imgLoaded ? 1 : 0,
-                transition: "opacity 0.4s ease",
-              }}
-            />
-          </>
+          <img
+            src={article.image_url}
+            alt={article.title}
+            onLoad={() => setImgLoaded(true)}
+            style={{
+              width: "100%", height: "100%",
+              objectFit: "cover",
+              opacity: imgLoaded ? 1 : 0,
+              transition: "opacity 0.4s ease, transform 2s ease",
+              transform: "scale(1)",
+            }}
+          />
         ) : (
           <div style={{
             width: "100%", height: "100%",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: "48px",
-            background: tagGradient,
+            display: "flex", alignItems: "center",
+            justifyContent: "center", fontSize: "64px",
+            background: "linear-gradient(135deg, #f5f0e8, #ede8df)",
           }}>
-            {article.tag === "Trading" ? "📈"
-              : article.tag === "AI" ? "🤖"
-              : article.tag === "DSA" ? "🧮"
-              : article.tag === "Python" ? "🐍"
-              : article.tag === "Security" ? "🔐"
-              : "📚"}
+            {tagEmoji[article.tag] || "📚"}
           </div>
         )}
 
-        {/* Source chip on image */}
+        {/* White scrim — bottom of image */}
         <div style={{
-          position: "absolute", bottom: "10px", left: "10px",
-          background: "rgba(0,0,0,0.7)",
+          position: "absolute", inset: 0,
+          background: "linear-gradient(to bottom, rgba(250,249,245,0) 40%, rgba(250,249,245,0.5) 75%, rgba(250,249,245,1) 100%)",
+        }} />
+
+        {/* Double tap heart */}
+        {tapped && (
+          <div style={{
+            position: "absolute", inset: 0, zIndex: 10,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            pointerEvents: "none",
+          }}>
+            <span style={{
+              fontSize: "80px", color: "#D4AF37",
+              animation: "goldHeartBurst 0.8s cubic-bezier(0.175,0.885,0.32,1.275) forwards",
+            }}>♥</span>
+          </div>
+        )}
+
+        {/* Source chip */}
+        <div style={{
+          position: "absolute", bottom: "12px", left: "16px",
+          background: "rgba(255,255,255,0.9)",
           backdropFilter: "blur(8px)",
-          borderRadius: "8px",
-          padding: "4px 8px",
-          fontSize: "10px",
-          color: "rgba(255,255,255,0.7)",
-          fontFamily: "monospace",
+          borderRadius: "8px", padding: "4px 8px",
+          fontSize: "10px", color: "#666",
+          fontWeight: 500,
         }}>
           {domain}
         </div>
       </div>
 
-      {/* Content */}
+      {/* CONTENT — bottom 50% */}
       <div style={{
-        position: "relative", zIndex: 2,
-        flex: 1, paddingTop: "16px",
+        height: "50%", flexShrink: 0,
+        display: "flex", flexDirection: "column",
+        justifyContent: "space-between",
+        padding: "4px 20px 24px",
+        position: "relative", zIndex: 30,
       }}>
-        <h2 style={{
-          color: "#ffffff",
-          fontSize: "clamp(18px, 4.5vw, 24px)",
-          fontWeight: 800,
-          lineHeight: 1.25,
-          marginBottom: "10px",
-          fontFamily: "'Georgia', serif",
-          letterSpacing: "-0.02em",
+        {/* Tag + read time */}
+        <div style={{
+          display: "flex", alignItems: "center", gap: "8px",
+          marginBottom: "6px",
         }}>
+          <span style={{
+            fontSize: "9px", fontWeight: 800,
+            letterSpacing: "0.2em", color: "#D4AF37",
+            textTransform: "uppercase",
+          }}>
+            {article.tag}
+          </span>
+          <div style={{
+            width: "4px", height: "4px",
+            borderRadius: "50%", background: "#ccc",
+          }} />
+          <span style={{
+            fontSize: "10px", color: "#999", fontWeight: 500,
+          }}>
+            {readTime} min read
+          </span>
+        </div>
+
+        {/* Title */}
+        <h2
+          onClick={(e) => { e.stopPropagation(); onRead(article.url); }}
+          style={{
+            fontSize: "clamp(18px, 5vw, 26px)",
+            fontWeight: 600,
+            color: "#111",
+            lineHeight: 1.25,
+            letterSpacing: "-0.02em",
+            fontFamily: "'Georgia', 'Playfair Display', serif",
+            cursor: "pointer",
+            marginBottom: "6px",
+            transition: "color 0.2s",
+          }}
+        >
           {article.title}
         </h2>
 
+        {/* Summary */}
         {article.summary && (
           <p style={{
-            color: "rgba(255,255,255,0.55)",
-            fontSize: "13px",
-            lineHeight: 1.6,
-            marginBottom: "16px",
+            fontSize: "12px", color: "#777",
+            lineHeight: 1.6, fontWeight: 300,
             display: "-webkit-box",
-            WebkitLineClamp: 3,
+            WebkitLineClamp: 2,
             WebkitBoxOrient: "vertical",
             overflow: "hidden",
+            marginBottom: "8px",
           }}>
             {article.summary}
           </p>
         )}
 
-        {/* Read progress bar */}
-        <div style={{ marginBottom: "16px" }}>
-          <div style={{
-            display: "flex", justifyContent: "space-between",
-            marginBottom: "6px",
+        {/* Poll micro-interaction */}
+        <div style={{
+          background: "rgba(245,242,236,0.8)",
+          border: "1px solid rgba(212,175,55,0.15)",
+          borderRadius: "16px",
+          padding: "10px 14px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: "10px",
+        }}>
+          <span style={{
+            fontSize: "11px", fontWeight: 600, color: "#555",
           }}>
-            <span style={{
-              color: "rgba(255,255,255,0.3)",
-              fontSize: "10px", fontFamily: "monospace",
-            }}>
-              READING PROGRESS
-            </span>
-            <span style={{
-              color: tagColor,
-              fontSize: "10px", fontFamily: "monospace",
-            }}>
-              {readProgress}%
-            </span>
-          </div>
-          <div style={{
-            height: "3px",
-            background: "rgba(255,255,255,0.08)",
-            borderRadius: "2px", overflow: "hidden",
-          }}>
-            <div style={{
-              height: "100%",
-              width: `${readProgress}%`,
-              background: tagColor,
-              borderRadius: "2px",
-              boxShadow: `0 0 6px ${tagColor}`,
-            }} />
+            Worth your time?
+          </span>
+          <div style={{ display: "flex", gap: "6px" }}>
+            {["Definitely", "Maybe"].map(opt => (
+              <button
+                key={opt}
+                onClick={(e) => { e.stopPropagation(); setVoted(opt); }}
+                style={{
+                  fontSize: "9px", fontWeight: 700,
+                  letterSpacing: "0.1em",
+                  textTransform: "uppercase",
+                  padding: "6px 12px",
+                  borderRadius: "20px",
+                  cursor: "pointer",
+                  transition: "all 0.2s",
+                  border: voted === opt
+                    ? "1px solid #D4AF37"
+                    : "1px solid rgba(212,175,55,0.2)",
+                  background: voted === opt ? "#111" : "#FAF9F5",
+                  color: voted === opt ? "#D4AF37" : "#786028",
+                }}
+              >
+                {opt}
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* READ CTA */}
-        <button
-          onClick={(e) => { e.stopPropagation(); onRead(article.url); }}
-          style={{
-            width: "100%",
-            padding: "14px",
-            background: `linear-gradient(135deg, ${tagColor}22, ${tagColor}11)`,
-            border: `1px solid ${tagColor}44`,
-            borderRadius: "12px",
-            color: tagColor,
-            fontSize: "14px",
-            fontWeight: 700,
-            fontFamily: "monospace",
-            letterSpacing: "0.08em",
-            cursor: "pointer",
-            marginBottom: "16px",
-            boxShadow: `0 0 20px ${tagColor}11`,
-            transition: "all 0.2s",
-          }}
-        >
-          READ ARTICLE →
-        </button>
-
-        {/* Action row */}
+        {/* Bottom actions */}
         <div style={{
           display: "flex",
-          justifyContent: "space-around",
-          paddingBottom: "32px",
+          alignItems: "center",
+          justifyContent: "space-between",
         }}>
-          <ActionBtn
-            emoji={liked ? "❤️" : "🤍"}
-            label="Like"
-            active={liked}
-            color={tagColor}
-            onClick={(e) => {
-              e.stopPropagation();
-              setLiked(!liked);
-              onLike(article.url, article.tag);
+          {/* Read CTA */}
+          <button
+            onClick={(e) => { e.stopPropagation(); onRead(article.url); }}
+            style={{
+              display: "flex", alignItems: "center", gap: "8px",
+              background: "#111", color: "#fff",
+              fontSize: "10px", fontWeight: 700,
+              letterSpacing: "0.1em", textTransform: "uppercase",
+              padding: "12px 18px", borderRadius: "999px",
+              border: "none", cursor: "pointer",
+              boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
             }}
-          />
-          <ActionBtn
-            emoji={saved ? "🔖" : "📌"}
-            label="Save"
-            active={saved}
-            color={tagColor}
-            onClick={(e) => {
-              e.stopPropagation();
-              setSaved(!saved);
-              onSave(article.url, article.tag);
-            }}
-          />
-          <ActionBtn
-            emoji="⏭️"
-            label="Skip"
-            active={false}
-            color="rgba(255,255,255,0.3)"
-            onClick={(e) => {
-              e.stopPropagation();
-              onSkip(article.url, article.tag);
-            }}
-          />
+          >
+            <span>Read Article</span>
+            <span style={{ color: "#D4AF37", fontSize: "12px" }}>›</span>
+          </button>
+
+          {/* Icon actions */}
+          <div style={{ display: "flex", gap: "8px" }}>
+            <IconBtn
+              active={liked}
+              color="#D4AF37"
+              onClick={(e) => {
+                e.stopPropagation();
+                setLiked(!liked);
+                onLike(article.url, article.tag);
+              }}
+              icon={
+                <svg width="18" height="18" viewBox="0 0 24 24" fill={liked ? "#D4AF37" : "none"} stroke={liked ? "#D4AF37" : "currentColor"} strokeWidth="2">
+                  <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.318L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                </svg>
+              }
+            />
+            <IconBtn
+              active={saved}
+              color="#D4AF37"
+              onClick={(e) => {
+                e.stopPropagation();
+                setSaved(!saved);
+                onSave(article.url, article.tag);
+              }}
+              icon={
+                <svg width="18" height="18" viewBox="0 0 24 24" fill={saved ? "#D4AF37" : "none"} stroke={saved ? "#D4AF37" : "currentColor"} strokeWidth="2">
+                  <path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/>
+                </svg>
+              }
+            />
+          </div>
         </div>
       </div>
 
       <style>{`
-        @keyframes heartPop {
-          0%   { transform: scale(0); opacity: 1; }
-          50%  { transform: scale(1.3); opacity: 1; }
-          100% { transform: scale(1); opacity: 0; }
+        @keyframes goldHeartBurst {
+          0%   { transform: scale(0) rotate(-15deg); opacity: 0; }
+          20%  { transform: scale(1.2) rotate(10deg); opacity: 1; }
+          40%  { transform: scale(1) rotate(0deg); opacity: 1; }
+          100% { transform: scale(1.4); opacity: 0; }
         }
         @keyframes shimmer {
           0%   { background-position: -200% 0; }
           100% { background-position: 200% 0; }
+        }
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50%       { opacity: 0.5; }
         }
       `}</style>
     </div>
   );
 }
 
-function ActionBtn({ emoji, label, active, color, onClick }: {
-  emoji: string; label: string; active: boolean;
-  color: string; onClick: (e: React.MouseEvent) => void;
+function IconBtn({ active, color, onClick, icon }: {
+  active: boolean;
+  color: string;
+  onClick: (e: React.MouseEvent) => void;
+  icon: React.ReactNode;
 }) {
   return (
-    <button onClick={onClick} style={{
-      background: "none", border: "none", cursor: "pointer",
-      display: "flex", flexDirection: "column",
-      alignItems: "center", gap: "4px", padding: "8px 16px",
-      borderRadius: "12px",
-      transition: "all 0.2s",
-    }}>
-      <span style={{
-        fontSize: "24px",
-        filter: active ? `drop-shadow(0 0 8px ${color})` : "none",
-        transform: active ? "scale(1.2)" : "scale(1)",
+    <button
+      onClick={onClick}
+      style={{
+        width: "44px", height: "44px",
+        borderRadius: "50%",
+        background: "#fff",
+        border: `1px solid ${active ? color : "rgba(0,0,0,0.1)"}`,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        cursor: "pointer",
+        color: active ? color : "#aaa",
+        boxShadow: active ? `0 0 12px ${color}33` : "0 2px 8px rgba(0,0,0,0.06)",
         transition: "all 0.2s",
-      }}>
-        {emoji}
-      </span>
-      <span style={{
-        color: active ? color : "rgba(255,255,255,0.35)",
-        fontSize: "10px", fontFamily: "monospace",
-        letterSpacing: "0.05em",
-      }}>
-        {label}
-      </span>
+      }}
+    >
+      {icon}
     </button>
   );
 }
