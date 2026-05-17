@@ -112,15 +112,11 @@ export async function POST(req: NextRequest) {
       }
     } catch {}
 
-    // 2. If no OG image, generate via NEXUS
-    // 2. If no OG image, generate + store in Supabase
-    if (!imageUrl) {
-      const prompt = `${title} ${tag || ""}`.trim();
-      const stored = await storeImage(prompt, Date.now().toString());
-      if (stored) {
-        imageUrl    = stored;
-        imageSource = "supabase";
-      }
+    // 2. If no OG image, use Pollinations URL directly
+    if (!imageUrl && title) {
+      const prompt = encodeURIComponent(`${title} ${tag || ""}`.trim());
+      imageUrl    = `https://image.pollinations.ai/prompt/${prompt}?width=800&height=450&nologo=true`;
+      imageSource = "pollinations";
     }
 
     // 3. Generate summary via NEXUS if missing
