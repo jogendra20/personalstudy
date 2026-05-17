@@ -15,8 +15,8 @@ interface BadgeToast {
 }
 
 export default function Home() {
-  const [xpFlash, setXpFlash]       = useState<XPFlash | null>(null);
-  const [badges, setBadges]         = useState<BadgeToast[]>([]);
+  const [xpFlash, setXpFlash] = useState<XPFlash | null>(null);
+  const [badges, setBadges]   = useState<BadgeToast[]>([]);
 
   const handleXP = useCallback((amount: number, reason: string) => {
     setXpFlash({ amount, reason });
@@ -31,26 +31,17 @@ export default function Home() {
     }, 3000);
   }, []);
 
-    setTagFilter(tag);
-  }, []);
-
   return (
     <main style={{
       position: "relative",
       width: "100%",
       height: "100svh",
       overflow: "hidden",
-      background: "#0a0a0a",
+      background: "#FAF9F5",
     }}>
-      {/* Stories bar at top */}
-
-      {/* Main feed */}
       <FeedScroll onXP={handleXP} onBadge={handleBadge} />
-
-      {/* XP bar at bottom */}
       <XPBar flash={xpFlash} />
 
-      {/* Badge toasts */}
       <div style={{
         position: "fixed", top: "80px", right: "16px",
         zIndex: 200, display: "flex",
@@ -58,26 +49,22 @@ export default function Home() {
       }}>
         {badges.map(badge => (
           <div key={badge.id} style={{
-            background: "linear-gradient(135deg, rgba(0,255,136,0.15), rgba(0,204,255,0.15))",
-            border: "1px solid rgba(0,255,136,0.3)",
+            background: "rgba(255,255,255,0.95)",
+            border: "1px solid rgba(212,175,55,0.3)",
             borderRadius: "12px",
             padding: "10px 16px",
             animation: "badgeIn 3s ease forwards",
             backdropFilter: "blur(10px)",
+            boxShadow: "0 4px 16px rgba(0,0,0,0.08)",
           }}>
             <p style={{
-              color: "#00ff88",
-              fontFamily: "monospace",
-              fontSize: "12px",
-              fontWeight: 700,
-              margin: 0,
+              color: "#D4AF37", fontSize: "12px",
+              fontWeight: 700, margin: 0,
             }}>
               🏆 Badge Unlocked!
             </p>
             <p style={{
-              color: "rgba(255,255,255,0.8)",
-              fontFamily: "monospace",
-              fontSize: "11px",
+              color: "#555", fontSize: "11px",
               margin: "2px 0 0",
             }}>
               {badge.name}
@@ -94,7 +81,7 @@ export default function Home() {
           100% { opacity: 0; transform: translateX(20px); }
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { background: #0a0a0a; overflow: hidden; }
+        body { background: #FAF9F5; overflow: hidden; }
       `}</style>
     </main>
   );
