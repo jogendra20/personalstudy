@@ -79,7 +79,7 @@ export default function FeedCard({
           backgroundImage: `url(${article.image_url})`,
           backgroundSize: "cover",
           backgroundPosition: "center",
-          filter: "brightness(0.35) saturate(1.2)",
+          filter: "brightness(0.45) saturate(1.4) contrast(1.1)",
         } : {
           background: `radial-gradient(ellipse at 50% 0%, ${tagColor}55 0%, ${tagColor}15 45%, #0a0a0a 80%)`,
         }),

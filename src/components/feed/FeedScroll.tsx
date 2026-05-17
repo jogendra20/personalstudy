@@ -18,6 +18,16 @@ export default function FeedScroll({ onXP, onBadge }: FeedScrollProps) {
   const containerRef              = useRef<HTMLDivElement>(null);
   const readTimers                = useRef<Record<string, number>>({});
 
+  // Preload images
+  useEffect(() => {
+    articles.slice(0, 5).forEach(a => {
+      if (a.image_url) {
+        const img = new Image();
+        img.src = a.image_url;
+      }
+    });
+  }, [articles]);
+
   // Load feed
   useEffect(() => {
     loadFeed();
