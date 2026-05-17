@@ -2,7 +2,6 @@
 
 import { useState, useCallback } from "react";
 import FeedScroll from "@/components/feed/FeedScroll";
-import StoriesBar from "@/components/feed/StoriesBar";
 import XPBar from "@/components/gamification/XPBar";
 
 interface XPFlash {
@@ -18,7 +17,6 @@ interface BadgeToast {
 export default function Home() {
   const [xpFlash, setXpFlash]       = useState<XPFlash | null>(null);
   const [badges, setBadges]         = useState<BadgeToast[]>([]);
-  const [tagFilter, setTagFilter]   = useState<string | null>(null);
 
   const handleXP = useCallback((amount: number, reason: string) => {
     setXpFlash({ amount, reason });
@@ -33,7 +31,6 @@ export default function Home() {
     }, 3000);
   }, []);
 
-  const handleFilter = useCallback((tag: string | null) => {
     setTagFilter(tag);
   }, []);
 
@@ -46,7 +43,6 @@ export default function Home() {
       background: "#0a0a0a",
     }}>
       {/* Stories bar at top */}
-      <StoriesBar onFilter={handleFilter} />
 
       {/* Main feed */}
       <FeedScroll onXP={handleXP} onBadge={handleBadge} />
