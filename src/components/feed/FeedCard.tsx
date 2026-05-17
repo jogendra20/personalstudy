@@ -264,7 +264,7 @@ export default function FeedCard({
             fontSize: "12px", color: "#777",
             lineHeight: 1.6, fontWeight: 300,
             display: "-webkit-box",
-            WebkitLineClamp: 2,
+            WebkitLineClamp: 3,
             WebkitBoxOrient: "vertical",
             overflow: "hidden",
             marginBottom: "8px",

@@ -67,7 +67,7 @@ export default function FeedScroll({ onXP, onBadge }: FeedScrollProps) {
         score: 1,
         created_at: a.publishedAt,
       }));
-      setArticles(mapped);
+      setArticles(mapped.sort((a, b) => (b.image_url ? 1 : 0) - (a.image_url ? 1 : 0)));
     } catch (e) {
       console.error("Feed load failed:", e);
     } finally {
