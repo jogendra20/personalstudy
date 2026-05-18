@@ -136,6 +136,25 @@ export default function FeedCard({
         fontFamily: "'Inter', sans-serif",
       }}
     >
+      {/* Rotated category label — on outer wrapper */}
+      <div style={{
+        position: "absolute", left: "0", top: "40%",
+        zIndex: 35,
+        transform: "translateX(-28px) translateY(-50%) rotate(-90deg)",
+        transformOrigin: "center center",
+        display: "flex", alignItems: "center", gap: "8px",
+        pointerEvents: "none",
+      }}>
+        <div style={{ width: "16px", height: "1px", background: "#D4AF37", opacity: 0.7 }} />
+        <span style={{
+          fontSize: "7px", fontWeight: 800,
+          letterSpacing: "0.3em", color: "#D4AF37",
+          textTransform: "uppercase", whiteSpace: "nowrap",
+        }}>
+          {article.tag}
+        </span>
+      </div>
+
       {/* Top gold progress line */}
       <div style={{
         position: "absolute", top: 0, left: 0, right: 0,
@@ -221,23 +240,6 @@ export default function FeedCard({
             {emoji}
           </div>
         )}
-
-        {/* Rotated category label */}
-        <div style={{
-          position: "absolute", left: "0", top: "50%",
-          transform: "translateX(-50%) translateY(-50%) rotate(-90deg)",
-          zIndex: 6, transformOrigin: "center center",
-          display: "flex", alignItems: "center", gap: "8px",
-        }}>
-          <div style={{ width: "20px", height: "1px", background: "#D4AF37", opacity: 0.6 }} />
-          <span style={{
-            fontSize: "8px", fontWeight: 800,
-            letterSpacing: "0.3em", color: "#D4AF37",
-            textTransform: "uppercase", whiteSpace: "nowrap",
-          }}>
-            {article.tag}
-          </span>
-        </div>
 
         {/* Dark scrim */}
         <div style={{
