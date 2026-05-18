@@ -329,7 +329,7 @@ function ReadPageInner() {
                 overflow: "hidden",
                 position: "relative",
               }}>
-                <img src={meta.image_url} alt={article.title}
+                <img src={meta.cover} alt={article.title}
                   style={{ width: "100%", height: "100%", objectFit: "cover", opacity: 0.92 }} />
                 <div style={{
                   position: "absolute", inset: 0,
