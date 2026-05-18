@@ -184,7 +184,7 @@ export default function FeedCard({
       {/* IMAGE */}
       <div style={{
         position: "relative",
-        height: "300px", width: "100%",
+        height: "420px", width: "100%",
         overflow: "hidden", flexShrink: 0,
       }}>
         {!imgLoaded && (
@@ -219,11 +219,42 @@ export default function FeedCard({
           </div>
         )}
 
-        {/* White scrim */}
+        {/* Dark scrim */}
         <div style={{
           position: "absolute", inset: 0,
-          background: "linear-gradient(to bottom, rgba(250,249,245,0) 35%, rgba(250,249,245,0.6) 75%, rgba(250,249,245,1) 100%)",
+          background: "linear-gradient(to bottom, rgba(0,0,0,0) 20%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.82) 100%)",
         }} />
+
+        {/* Title overlay on image */}
+        <div style={{
+          position: "absolute", bottom: 0, left: 0, right: 0,
+          padding: "0 20px 48px",
+          zIndex: 5,
+        }}>
+          <div style={{
+            fontSize: "9px", fontWeight: 800,
+            letterSpacing: "0.25em", color: "#D4AF37",
+            textTransform: "uppercase", marginBottom: "8px",
+          }}>
+            {article.tag}
+          </div>
+          <h2
+            onClick={(e) => { e.stopPropagation(); handleRead(); }}
+            style={{
+              fontSize: "clamp(22px, 6vw, 32px)",
+              fontWeight: 700,
+              color: "#fff",
+              lineHeight: 1.15,
+              letterSpacing: "-0.02em",
+              fontFamily: "'Georgia', serif",
+              cursor: "pointer",
+              margin: 0,
+              textShadow: "0 2px 12px rgba(0,0,0,0.4)",
+            }}
+          >
+            {article.title}
+          </h2>
+        </div>
 
         {/* Double tap heart */}
         {tapped && (
@@ -263,46 +294,16 @@ export default function FeedCard({
         gap: "12px",
       }}>
 
-        {/* Stats line */}
-        <div style={{
-          display: "flex", alignItems: "center", gap: "10px",
-        }}>
-          <span style={{
-            fontSize: "9px", fontWeight: 800,
-            letterSpacing: "0.2em", color: "#D4AF37",
-            textTransform: "uppercase",
-          }}>
-            {article.tag}
-          </span>
-          <div style={{ width: "3px", height: "3px", borderRadius: "50%", background: "#ccc" }} />
+        {/* Meta line */}
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <span style={{ fontSize: "10px", color: "#aaa" }}>{reads} reads</span>
-          <div style={{ width: "3px", height: "3px", borderRadius: "50%", background: "#ccc" }} />
+          <span style={{ fontSize: "10px", color: "#ddd" }}>·</span>
           <span style={{ fontSize: "10px", color: "#aaa" }}>{timeAgo}</span>
-          <div style={{ width: "3px", height: "3px", borderRadius: "50%", background: "#ccc" }} />
-          <span style={{
-            fontSize: "9px", fontWeight: 700,
-            color: "#D4AF37", letterSpacing: "0.05em",
-          }}>
+          <span style={{ fontSize: "10px", color: "#ddd" }}>·</span>
+          <span style={{ fontSize: "9px", fontWeight: 700, color: "#D4AF37", letterSpacing: "0.05em" }}>
             {trending}
           </span>
         </div>
-
-        {/* Title */}
-        <h2
-          onClick={(e) => { e.stopPropagation(); handleRead(); }}
-          style={{
-            fontSize: "clamp(20px, 5.5vw, 28px)",
-            fontWeight: 700,
-            color: "#111",
-            lineHeight: 1.2,
-            letterSpacing: "-0.02em",
-            fontFamily: "'Georgia', serif",
-            cursor: "pointer",
-            margin: 0,
-          }}
-        >
-          {article.title}
-        </h2>
 
         {/* Context */}
         {cleanSummary && (
