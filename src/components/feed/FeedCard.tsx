@@ -84,8 +84,9 @@ export default function FeedCard({
 
   const cleanSummary = article.summary
     ? article.summary
-        .replace(/\.?Continue reading.*$/i, "")
-        .replace(/Read more.*$/i, "")
+        .replace(/[.\s]*Continue re(ading)?.*$/i, "")
+        .replace(/[.\s]*Read more.*$/i, "")
+        .replace(/[.\s]*Read on.*$/i, "")
         .replace(/\s+»\s*$/, "")
         .trim()
     : null;
@@ -312,7 +313,7 @@ export default function FeedCard({
       {/* CONTENT */}
       <div style={{
         display: "flex", flexDirection: "column",
-        padding: "20px 20px 20px",
+        padding: "20px 20px 100px",
         position: "relative", zIndex: 30,
         gap: "12px",
         background: "#FAF9F5",
