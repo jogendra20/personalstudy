@@ -429,8 +429,9 @@ function ReadPageInner() {
         </div>
       )}
       <style>{`
-        .article-content h1,
-        .article-content h2 { font-size: 1.15rem; font-weight: 600; margin: 24px 0 8px; line-height: 1.4; }
+        .article-content h1 { display: none; }
+        .article-content h2 { font-size: 1.1rem; font-weight: 600; margin: 24px 0 8px; line-height: 1.4; }
+        .article-content h2:first-child { font-size: 1rem; font-weight: 400; color: #666; margin-top: 0; }
         .article-content h3 { font-size: 1rem; font-weight: 600; margin: 20px 0 6px; }
         .article-content p { margin-bottom: 1.4em; }
         .article-content a { color: #786028; text-decoration: underline; text-decoration-color: rgba(120,96,40,0.3); }
