@@ -53,6 +53,7 @@ export default function FeedCard({
   article, onLike, onSkip, onSave, onRead, isActive
 }: FeedCardProps) {
   const [liked, setLiked]           = useState(false);
+  const [transitioning, setTransitioning] = useState(false);
   const [saved, setSaved]           = useState(false);
   const [tapped, setTapped]         = useState(false);
   const [imgLoaded, setImgLoaded]   = useState(false);
@@ -107,8 +108,10 @@ export default function FeedCard({
   }
 
   function handleRead() {
+    if (transitioning) return;
+    setTransitioning(true);
     recordRead(article.tag, article.url);
-    onRead(article.url);
+    setTimeout(() => onRead(article.url), 380);
   }
 
   function handleSkip(e: React.MouseEvent) {
@@ -400,7 +403,21 @@ export default function FeedCard({
         </div>
       </div>
 
+      {/* Transition overlay */}
+      {transitioning && (
+        <div style={{
+          position: "fixed", inset: 0, zIndex: 999,
+          background: "#FAF9F5",
+          animation: "fadeInWhite 0.38s cubic-bezier(0.4,0,0.2,1) forwards",
+          pointerEvents: "none",
+        }} />
+      )}
+
       <style>{`
+        @keyframes fadeInWhite {
+          0%   { opacity: 0; }
+          100% { opacity: 1; }
+        }
         @keyframes goldHeart {
           0%   { transform: scale(0) rotate(-15deg); opacity: 0; }
           20%  { transform: scale(1.2) rotate(10deg); opacity: 1; }
