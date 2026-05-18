@@ -138,9 +138,9 @@ export default function FeedCard({
     >
       {/* Rotated category label — on outer wrapper */}
       <div style={{
-        position: "absolute", left: "0", top: "40%",
+        position: "absolute", left: "0", top: "25%",
         zIndex: 35,
-        transform: "translateX(-28px) translateY(-50%) rotate(-90deg)",
+        transform: "translateX(-38px) translateY(-50%) rotate(-90deg)",
         transformOrigin: "center center",
         display: "flex", alignItems: "center", gap: "8px",
         pointerEvents: "none",
@@ -148,7 +148,7 @@ export default function FeedCard({
         <div style={{ width: "16px", height: "1px", background: "#D4AF37", opacity: 0.7 }} />
         <span style={{
           fontSize: "7px", fontWeight: 800,
-          letterSpacing: "0.3em", color: "#D4AF37",
+          letterSpacing: "0.3em", color: "rgba(212,175,55,0.8)",
           textTransform: "uppercase", whiteSpace: "nowrap",
         }}>
           {article.tag}
