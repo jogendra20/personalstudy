@@ -346,7 +346,10 @@ function ReadPageInner() {
               </p>
             )}
             <div style={{ height: "1px", background: borderCol, margin: "24px 0" }} />
-            <div className="article-content" onMouseUp={handleTextSelect} onTouchEnd={handleTextSelect} style={{ fontSize: FONT_MAP[fontSize], fontFamily: "Georgia, 'Times New Roman', serif", lineHeight: 1.85, color: textCol, letterSpacing: "0.01em" }} dangerouslySetInnerHTML={{ __html: article.content }} />
+            <div className="article-content" onMouseUp={handleTextSelect} onTouchEnd={handleTextSelect} style={{ fontSize: FONT_MAP[fontSize], fontFamily: "Georgia, 'Times New Roman', serif", lineHeight: 1.85, color: textCol, letterSpacing: "0.01em" }} dangerouslySetInnerHTML={{ __html: article.content
+  .replace(/<p[^>]*>\s*--\s*<\/p>/g, "")
+  .replace(/<p[^>]*>\s*·\s*<\/p>/g, "")
+}} />
             <div style={{ marginTop: "48px", paddingTop: "24px", borderTop: "1px solid " + borderCol }}>
               <button onClick={() => { setShowFlow(true); setFlowStep("recall"); if (article) generateFlowTask(article.textContent || "", meta?.tag || "General", article.title); }}
                 style={{ width: "100%", padding: "16px", background: dark ? "#1a1a2e" : "#f0f0ff", border: "1px solid " + (dark ? "#6366f1" : "#c7d2fe"), borderRadius: "14px", cursor: "pointer", marginBottom: "16px", textAlign: "left" as const }}>
