@@ -222,6 +222,23 @@ export default function FeedCard({
           </div>
         )}
 
+        {/* Rotated category label */}
+        <div style={{
+          position: "absolute", left: "0", top: "50%",
+          transform: "translateX(-50%) translateY(-50%) rotate(-90deg)",
+          zIndex: 6, transformOrigin: "center center",
+          display: "flex", alignItems: "center", gap: "8px",
+        }}>
+          <div style={{ width: "20px", height: "1px", background: "#D4AF37", opacity: 0.6 }} />
+          <span style={{
+            fontSize: "8px", fontWeight: 800,
+            letterSpacing: "0.3em", color: "#D4AF37",
+            textTransform: "uppercase", whiteSpace: "nowrap",
+          }}>
+            {article.tag}
+          </span>
+        </div>
+
         {/* Dark scrim */}
         <div style={{
           position: "absolute", inset: 0,
@@ -293,20 +310,36 @@ export default function FeedCard({
       {/* CONTENT */}
       <div style={{
         display: "flex", flexDirection: "column",
-        padding: "16px 20px 20px",
+        padding: "20px 20px 20px",
         position: "relative", zIndex: 30,
         gap: "12px",
+        background: "#FAF9F5",
+        borderRadius: "24px 24px 0 0",
+        marginTop: "-24px",
+        boxShadow: "0 -4px 32px rgba(0,0,0,0.12)",
       }}>
 
-        {/* Meta line */}
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <span style={{ fontSize: "10px", color: "#aaa" }}>{reads} reads</span>
-          <span style={{ fontSize: "10px", color: "#ddd" }}>·</span>
-          <span style={{ fontSize: "10px", color: "#aaa" }}>{timeAgo}</span>
-          <span style={{ fontSize: "10px", color: "#ddd" }}>·</span>
-          <span style={{ fontSize: "9px", fontWeight: 700, color: "#D4AF37", letterSpacing: "0.05em" }}>
-            {trending}
-          </span>
+        {/* Meta row with icons */}
+        <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2px" }}>
+            <span style={{ fontSize: "11px", fontWeight: 700, color: "#333" }}>{reads}</span>
+            <span style={{ fontSize: "8px", color: "#bbb", letterSpacing: "0.08em", textTransform: "uppercase" }}>Readers</span>
+          </div>
+          <div style={{ width: "1px", height: "24px", background: "rgba(0,0,0,0.08)" }} />
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2px" }}>
+            <span style={{ fontSize: "11px", fontWeight: 700, color: "#333" }}>{timeAgo}</span>
+            <span style={{ fontSize: "8px", color: "#bbb", letterSpacing: "0.08em", textTransform: "uppercase" }}>Ago</span>
+          </div>
+          <div style={{ width: "1px", height: "24px", background: "rgba(0,0,0,0.08)" }} />
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2px" }}>
+            <span style={{ fontSize: "11px", fontWeight: 700, color: "#D4AF37" }}>{readTime}</span>
+            <span style={{ fontSize: "8px", color: "#bbb", letterSpacing: "0.08em", textTransform: "uppercase" }}>Min Read</span>
+          </div>
+          <div style={{ width: "1px", height: "24px", background: "rgba(0,0,0,0.08)" }} />
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2px" }}>
+            <span style={{ fontSize: "9px", fontWeight: 700, color: "#D4AF37" }}>✦</span>
+            <span style={{ fontSize: "8px", color: "#bbb", letterSpacing: "0.06em", textTransform: "uppercase", whiteSpace: "nowrap" }}>{trending}</span>
+          </div>
         </div>
 
         {/* Context */}
@@ -325,18 +358,7 @@ export default function FeedCard({
           </p>
         )}
 
-        {/* Read time + tag pill */}
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <span style={{
-            background: "rgba(212,175,55,0.1)",
-            border: "1px solid rgba(212,175,55,0.2)",
-            borderRadius: "20px", padding: "3px 10px",
-            fontSize: "10px", color: "#786028", fontWeight: 600,
-          }}>
-            {readTime} min read
-          </span>
 
-        </div>
 
         {/* Bottom actions */}
         <div style={{
