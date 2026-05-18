@@ -253,7 +253,8 @@ export default function FeedCard({
         display: "flex", flexDirection: "column",
         padding: "12px 20px 20px",
         position: "relative", zIndex: 30,
-        gap: "8px",
+        gap: "10px",
+        justifyContent: "space-between",
       }}>
 
         {/* Stats line */}
@@ -276,7 +277,7 @@ export default function FeedCard({
             fontSize: "9px", fontWeight: 700,
             color: "#D4AF37", letterSpacing: "0.05em",
           }}>
-            🔥 {trending}
+            {trending}
           </span>
         </div>
 
@@ -323,17 +324,14 @@ export default function FeedCard({
           }}>
             {readTime} min read
           </span>
-          <span style={{ fontSize: "10px", color: "#bbb" }}>{reads} reads</span>
-          <span style={{ fontSize: "10px", color: "#bbb" }}>·</span>
-          <span style={{ fontSize: "10px", color: "#bbb" }}>{timeAgo}</span>
+
         </div>
 
         {/* Bottom actions */}
         <div style={{
           display: "flex", alignItems: "center",
           justifyContent: "space-between",
-          marginTop: "auto",
-          padding: "12px 0 4px",
+          padding: "8px 0 4px",
           borderTop: "1px solid rgba(0,0,0,0.06)",
         }}>
           {/* Read CTA */}
