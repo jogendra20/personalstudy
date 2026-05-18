@@ -9,9 +9,10 @@ import { updateStreak, addXP, updateQuestProgress, XP_REWARDS } from "@/lib/gami
 interface FeedScrollProps {
   onXP: (amount: number, reason: string) => void;
   onBadge: (name: string) => void;
+  scrollRef?: React.RefObject<HTMLDivElement>;
 }
 
-export default function FeedScroll({ onXP, onBadge }: FeedScrollProps) {
+export default function FeedScroll({ onXP, onBadge, scrollRef }: FeedScrollProps) {
   const [articles, setArticles]   = useState<Article[]>([]);
   const [loading, setLoading]     = useState(true);
   const [page, setPage]           = useState(0);
@@ -181,7 +182,7 @@ export default function FeedScroll({ onXP, onBadge }: FeedScrollProps) {
 
   return (
     <div
-      ref={containerRef}
+      ref={scrollRef || containerRef}
       onScroll={handleScroll}
       style={{
         height: "100svh",

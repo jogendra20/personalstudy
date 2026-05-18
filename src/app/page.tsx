@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import FeedScroll from "@/components/feed/FeedScroll";
 
 interface BadgeToast {
@@ -11,6 +11,8 @@ interface BadgeToast {
 export default function Home() {
   const [badges, setBadges] = useState<BadgeToast[]>([]);
   const [navTab, setNavTab] = useState("home");
+  const [showGhost, setShowGhost] = useState(false);
+  const feedRef = useRef<HTMLDivElement>(null);
 
   const handleXP = useCallback((amount: number, reason: string) => {
     console.log(`+${amount} XP: ${reason}`);
@@ -32,7 +34,7 @@ export default function Home() {
       overflow: "hidden",
       background: "#FAF9F5",
     }}>
-      <FeedScroll onXP={handleXP} onBadge={handleBadge} />
+      <FeedScroll onXP={handleXP} onBadge={handleBadge} scrollRef={feedRef} />
 
       <div style={{
         position: "fixed", top: "80px", right: "16px",
@@ -59,6 +61,10 @@ export default function Home() {
       </div>
 
       <style>{`
+        @keyframes fadeUp {
+          0%   { opacity: 0; transform: translateY(20px); }
+          100% { opacity: 1; transform: translateY(0); }
+        }
         @keyframes badgeIn {
           0%   { opacity: 0; transform: translateX(20px); }
           15%  { opacity: 1; transform: translateX(0); }
@@ -68,6 +74,43 @@ export default function Home() {
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { background: #FAF9F5; overflow: hidden; }
       `}</style>
+      {/* Ghost Panel */}
+      {showGhost && (
+        <div style={{
+          position: "fixed", inset: 0, zIndex: 200,
+          background: "rgba(10,10,11,0.75)",
+          backdropFilter: "blur(8px)",
+          display: "flex", alignItems: "flex-end",
+        }} onClick={() => setShowGhost(false)}>
+          <div onClick={e => e.stopPropagation()} style={{
+            width: "100%", maxWidth: "640px", margin: "0 auto",
+            background: "#18181b",
+            border: "1px solid rgba(255,255,255,0.08)",
+            borderRadius: "24px 24px 0 0",
+            padding: "20px 20px 40px",
+            animation: "fadeUp 0.3s ease",
+          }}>
+            <div style={{
+              width: "36px", height: "4px",
+              background: "rgba(255,255,255,0.15)",
+              borderRadius: "2px", margin: "0 auto 20px",
+            }} />
+            <div style={{
+              fontSize: "11px", fontWeight: 800,
+              letterSpacing: "0.2em", color: "#D4AF37",
+              textTransform: "uppercase", marginBottom: "8px",
+              fontFamily: "'Inter', sans-serif",
+            }}>Ghostreader</div>
+            <p style={{
+              fontSize: "13px", color: "rgba(255,255,255,0.5)",
+              fontFamily: "'Inter', sans-serif", lineHeight: 1.6,
+            }}>
+              Open any article and tap Ghost in the reader toolbar, or highlight any text while reading to activate Ghostreader.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Bottom Nav */}
       <div style={{
         position: "fixed", bottom: 0, left: 0, right: 0,
@@ -118,7 +161,16 @@ export default function Home() {
           ].map(({ id, label, icon }) => (
             <button
               key={id}
-              onClick={() => setNavTab(id)}
+              onClick={() => {
+                setNavTab(id);
+                if (id === "home") {
+                  feedRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+                }
+                if (id === "ghost") {
+                  setShowGhost(true);
+                  setNavTab("home");
+                }
+              }}
               style={{
                 display: "flex", flexDirection: "column",
                 alignItems: "center", gap: "4px",
