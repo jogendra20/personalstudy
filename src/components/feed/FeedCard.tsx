@@ -272,14 +272,15 @@ export default function FeedCard({
 
         {/* Source chip */}
         <div style={{
-          position: "absolute", bottom: "14px", left: "16px",
-          display: "flex", alignItems: "center", gap: "6px",
+          position: "absolute", top: "56px", right: "16px",
+          zIndex: 6,
         }}>
           <div style={{
-            background: "rgba(255,255,255,0.92)",
+            background: "rgba(0,0,0,0.35)",
             backdropFilter: "blur(8px)",
-            borderRadius: "8px", padding: "4px 8px",
-            fontSize: "10px", color: "#555", fontWeight: 500,
+            borderRadius: "8px", padding: "4px 10px",
+            fontSize: "9px", color: "rgba(255,255,255,0.7)",
+            fontWeight: 500, letterSpacing: "0.03em",
           }}>
             {domain}
           </div>
