@@ -4,7 +4,10 @@ import { useRouter } from "next/navigation";
 import { getSavedArticles, toggleSaveArticle, Article } from "@/lib/api";
 
 function timeAgo(dateStr: string) {
-  const age = Date.now() - new Date(dateStr).getTime();
+  if (!dateStr) return "";
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return "";
+  const age = Date.now() - d.getTime();
   const hours = Math.floor(age / (1000 * 60 * 60));
   if (hours < 1) return "Just now";
   if (hours < 24) return `${hours}h ago`;
