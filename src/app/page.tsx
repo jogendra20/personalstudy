@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef } from "react";
+import { useRouter } from "next/navigation";
 import FeedScroll from "@/components/feed/FeedScroll";
 
 interface BadgeToast {
@@ -11,6 +12,7 @@ interface BadgeToast {
 export default function Home() {
   const [badges, setBadges] = useState<BadgeToast[]>([]);
   const [navTab, setNavTab] = useState("home");
+  const router = useRouter();
   const [showGhost, setShowGhost] = useState(false);
   const feedRef = useRef<HTMLDivElement>(null);
 
@@ -169,6 +171,9 @@ export default function Home() {
                 if (id === "ghost") {
                   setShowGhost(true);
                   setNavTab("home");
+                }
+                if (id === "library") {
+                  router.push("/library");
                 }
               }}
               style={{
