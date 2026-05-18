@@ -151,7 +151,7 @@ export default function LibraryPage() {
               }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                   <span style={{ fontSize: "10px", color: "#bbb" }}>
-                    {timeAgo(article.created_at || article.publishedAt || "")}
+                    {timeAgo(article.publishedAt || "")}
                   </span>
                   <span style={{ fontSize: "10px", color: "#ddd" }}>·</span>
                   <span style={{ fontSize: "10px", color: "#bbb" }}>{article.readTime}</span>
