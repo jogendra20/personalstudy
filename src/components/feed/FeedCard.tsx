@@ -80,6 +80,14 @@ export default function FeedCard({
 
   const reads    = fakeReads(article.url);
   const timeAgo  = fakeMinutesAgo(article.created_at);
+
+  const cleanSummary = article.summary
+    ? article.summary
+        .replace(/\.?Continue reading.*$/i, "")
+        .replace(/Read more.*$/i, "")
+        .replace(/\s+»\s*$/, "")
+        .trim()
+    : null;
   const trending = TAG_TRENDING[article.tag] || "Curated for you";
   const emoji    = TAG_EMOJI[article.tag] || "📚";
 
@@ -247,9 +255,9 @@ export default function FeedCard({
         </div>
       </div>
 
-      {/* CONTENT — bottom 52% */}
+      {/* CONTENT — bottom */}
       <div style={{
-        height: "52%", flexShrink: 0,
+        flex: 1, minHeight: 0,
         display: "flex", flexDirection: "column",
         padding: "12px 20px 20px",
         position: "relative", zIndex: 30,
@@ -299,7 +307,7 @@ export default function FeedCard({
         </h2>
 
         {/* Context */}
-        {article.summary && (
+        {cleanSummary && (
           <p style={{
             fontSize: "13px", color: "#666",
             lineHeight: 1.7, margin: 0,
@@ -310,7 +318,7 @@ export default function FeedCard({
             fontWeight: 300,
             letterSpacing: "0.01em",
           }}>
-            {article.summary}
+            {cleanSummary}
           </p>
         )}
 
