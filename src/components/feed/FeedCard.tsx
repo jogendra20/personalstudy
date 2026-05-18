@@ -258,7 +258,7 @@ export default function FeedCard({
       {/* CONTENT */}
       <div style={{
         display: "flex", flexDirection: "column",
-        padding: "16px 20px 0px",
+        padding: "16px 20px 100px",
         position: "relative", zIndex: 30,
         gap: "12px",
       }}>
@@ -335,12 +335,13 @@ export default function FeedCard({
 
         {/* Bottom actions */}
         <div style={{
+          position: "absolute",
+          bottom: 0, left: 0, right: 0,
           display: "flex", alignItems: "center",
           justifyContent: "space-between",
-          marginTop: "20px",
-          paddingTop: "12px",
-          paddingBottom: "24px",
-          borderTop: "1px solid rgba(0,0,0,0.06)",
+          padding: "16px 20px 32px",
+          background: "linear-gradient(to bottom, rgba(250,249,245,0) 0%, rgba(250,249,245,1) 30%)",
+          zIndex: 40,
         }}>
           {/* Read CTA */}
           <button
