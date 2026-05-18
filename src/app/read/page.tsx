@@ -277,7 +277,7 @@ function ReadPageInner() {
   const fSize = fontSize === "sm" ? "11px" : fontSize === "lg" ? "16px" : "13px";
 
   return (
-    <div data-dark={dark ? "true" : "false"} style={{ minHeight: "100vh", background: bg, transition: "background 0.3s" }}>
+    <div data-dark={dark ? "true" : "false"} style={{ minHeight: "100vh", background: bg, transition: "background 0.3s", animation: "pageIn 0.4s cubic-bezier(0.4,0,0.2,1) forwards" }}>
       <div style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 100, height: "3px" }}>
         <div style={{ height: "100%", width: progress + "%", background: "var(--accent3)", transition: "width 0.1s linear" }} />
       </div>
@@ -320,6 +320,23 @@ function ReadPageInner() {
               <div style={{ display: "flex", alignItems: "center", gap: "10px", background: "rgba(107,70,193,0.08)", border: "1px solid rgba(107,70,193,0.25)", borderRadius: "10px", padding: "10px 14px", marginBottom: "20px" }}>
                 <span style={{ fontSize: "0.82rem", color: text2, fontFamily: "'DM Mono', monospace" }}>⚠ Partial — paywalled</span>
                 <a href={article.freediumUrl} target="_blank" rel="noopener noreferrer" style={{ marginLeft: "auto", fontSize: "0.82rem", fontFamily: "'DM Mono', monospace", color: "var(--accent3)", fontWeight: 600, textDecoration: "none" }}>Read on Freedium ↗</a>
+              </div>
+            )}
+            {meta?.image_url && (
+              <div style={{
+                margin: "0 -20px 28px",
+                height: "220px",
+                overflow: "hidden",
+                position: "relative",
+              }}>
+                <img src={meta.image_url} alt={article.title}
+                  style={{ width: "100%", height: "100%", objectFit: "cover", opacity: 0.92 }} />
+                <div style={{
+                  position: "absolute", inset: 0,
+                  background: dark
+                    ? "linear-gradient(to bottom, rgba(13,13,14,0) 40%, rgba(13,13,14,1) 100%)"
+                    : "linear-gradient(to bottom, rgba(255,255,255,0) 40%, rgba(255,255,255,1) 100%)",
+                }} />
               </div>
             )}
             <h1 style={{ fontFamily: "Georgia, serif", fontSize: "clamp(1.5rem, 4vw, 1.9rem)", fontWeight: 800, lineHeight: 1.2, marginBottom: "12px", letterSpacing: "-0.01em", color: textCol }}>{article.title}</h1>
@@ -404,6 +421,12 @@ function ReadPageInner() {
           </div>
         </div>
       )}
+      <style>{`
+        @keyframes pageIn {
+          0%   { opacity: 0; transform: translateY(12px); }
+          100% { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
       {showGhost && <GhostreaderPanel initialHighlight={highlight} articleText={article?.textContent || ""} fullText={article?.textContent || ""} onClose={() => { setShowGhost(false); setHighlight(""); }} dark={dark} />}
     </div>
   );
