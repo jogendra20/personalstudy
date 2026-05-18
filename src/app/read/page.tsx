@@ -429,6 +429,14 @@ function ReadPageInner() {
         </div>
       )}
       <style>{`
+        .article-content h1,
+        .article-content h2 { font-size: 1.15rem; font-weight: 600; margin: 24px 0 8px; line-height: 1.4; }
+        .article-content h3 { font-size: 1rem; font-weight: 600; margin: 20px 0 6px; }
+        .article-content p { margin-bottom: 1.4em; }
+        .article-content a { color: #786028; text-decoration: underline; text-decoration-color: rgba(120,96,40,0.3); }
+        .article-content img { max-width: 100%; border-radius: 8px; margin: 16px 0; }
+        .article-content blockquote { border-left: 2px solid #D4AF37; margin: 20px 0; padding: 8px 16px; color: #666; font-style: italic; }
+        .article-content pre, .article-content code { font-family: 'DM Mono', monospace; font-size: 0.82em; background: rgba(0,0,0,0.04); border-radius: 4px; padding: 2px 6px; }
         @keyframes pageIn {
           0%   { opacity: 0; transform: translateY(12px); }
           100% { opacity: 1; transform: translateY(0); }
