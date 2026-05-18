@@ -322,7 +322,7 @@ function ReadPageInner() {
                 <a href={article.freediumUrl} target="_blank" rel="noopener noreferrer" style={{ marginLeft: "auto", fontSize: "0.82rem", fontFamily: "'DM Mono', monospace", color: "var(--accent3)", fontWeight: 600, textDecoration: "none" }}>Read on Freedium ↗</a>
               </div>
             )}
-            {meta?.image_url && (
+            {meta?.cover && (
               <div style={{
                 margin: "0 -20px 28px",
                 height: "220px",
