@@ -313,7 +313,7 @@ function ReadPageInner() {
           <div className="animate-fade-up">
             <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "16px", flexWrap: "wrap" as const }}>
               {article.siteName && <span style={{ fontSize: "11px", fontFamily: "'DM Mono', monospace", color: text3, background: dark?"#18181b":"var(--surface2)", border: "1px solid " + borderCol, padding: "3px 10px", borderRadius: "20px" }}>{article.siteName}</span>}
-              {meta?.tag && <span style={{ fontSize: "11px", fontFamily: "'DM Mono', monospace", color: "#1a8917", background: "rgba(26,137,23,0.08)", border: "1px solid rgba(26,137,23,0.2)", padding: "3px 10px", borderRadius: "20px" }}>{meta.tag}</span>}
+              {meta?.tag && <span style={{ fontSize: "11px", fontFamily: "'DM Mono', monospace", color: "#786028", background: "rgba(212,175,55,0.08)", border: "1px solid rgba(212,175,55,0.2)", padding: "3px 10px", borderRadius: "20px", letterSpacing: "0.05em", textTransform: "uppercase" as const }}>{meta.tag}</span>}
               {meta?.readTime && <span style={{ fontSize: "11px", fontFamily: "'DM Mono', monospace", color: text3 }}>{meta.readTime}</span>}
             </div>
             {article.isPaywalled && article.freediumUrl && (
@@ -340,7 +340,11 @@ function ReadPageInner() {
               </div>
             )}
             <h1 style={{ fontFamily: "Georgia, serif", fontSize: "clamp(1.5rem, 4vw, 1.9rem)", fontWeight: 800, lineHeight: 1.2, marginBottom: "12px", letterSpacing: "-0.01em", color: textCol }}>{article.title}</h1>
-            {article.byline && <p style={{ fontSize: "0.85rem", color: text3, fontFamily: "'DM Mono', monospace", marginBottom: "8px" }}>{article.byline}</p>}
+            {article.byline && article.byline.replace(/--/g,"").trim() && (
+              <p style={{ fontSize: "0.85rem", color: text3, fontFamily: "'DM Mono', monospace", marginBottom: "8px" }}>
+                {article.byline.replace(/\s*--\s*/g, "").trim()}
+              </p>
+            )}
             <div style={{ height: "1px", background: borderCol, margin: "24px 0" }} />
             <div className="article-content" onMouseUp={handleTextSelect} onTouchEnd={handleTextSelect} style={{ fontSize: FONT_MAP[fontSize], fontFamily: "Georgia, 'Times New Roman', serif", lineHeight: 1.85, color: textCol, letterSpacing: "0.01em" }} dangerouslySetInnerHTML={{ __html: article.content }} />
             <div style={{ marginTop: "48px", paddingTop: "24px", borderTop: "1px solid " + borderCol }}>
