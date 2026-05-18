@@ -108,9 +108,9 @@ export default function LibraryPage() {
             animation: "pageIn 0.3s ease",
           }}>
             {/* Image */}
-            {article.image_url && (
+            {article.cover && (
               <div style={{ height: "140px", overflow: "hidden", position: "relative" }}>
-                <img src={article.image_url} alt={article.title}
+                <img src={article.cover} alt={article.title}
                   style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                 <div style={{
                   position: "absolute", inset: 0,
@@ -127,7 +127,7 @@ export default function LibraryPage() {
 
             {/* Content */}
             <div style={{ padding: "14px 16px 16px" }}>
-              {!article.image_url && (
+              {!article.cover && (
                 <span style={{
                   fontSize: "8px", fontWeight: 800,
                   letterSpacing: "0.2em", color: "#D4AF37",
