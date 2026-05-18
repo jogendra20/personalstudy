@@ -181,10 +181,10 @@ export default function FeedCard({
         </button>
       </div>
 
-      {/* IMAGE — top 48% */}
+      {/* IMAGE */}
       <div style={{
         position: "relative",
-        height: "48%", width: "100%",
+        height: "300px", width: "100%",
         overflow: "hidden", flexShrink: 0,
       }}>
         {!imgLoaded && (
@@ -255,14 +255,13 @@ export default function FeedCard({
         </div>
       </div>
 
-      {/* CONTENT — bottom */}
+      {/* CONTENT */}
       <div style={{
         flex: 1, minHeight: 0,
         display: "flex", flexDirection: "column",
-        padding: "12px 20px 20px",
+        padding: "16px 20px 24px",
         position: "relative", zIndex: 30,
-        gap: "10px",
-        justifyContent: "space-between",
+        gap: "12px",
       }}>
 
         {/* Stats line */}
@@ -339,7 +338,8 @@ export default function FeedCard({
         <div style={{
           display: "flex", alignItems: "center",
           justifyContent: "space-between",
-          padding: "8px 0 4px",
+          marginTop: "auto",
+          paddingTop: "12px",
           borderTop: "1px solid rgba(0,0,0,0.06)",
         }}>
           {/* Read CTA */}
