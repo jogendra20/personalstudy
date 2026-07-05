@@ -3,7 +3,7 @@ import { getForgeKeys, saveForgeTask, getForgeTasks } from "@/lib/forge";
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { getGroqKey, setGroqKey, toggleSaveArticle, isArticleSaved, Article } from "@/lib/api";
+import { getGroqKey, setGroqKey, toggleSaveArticle, isArticleSaved, Article } from "@/lib/api";\nimport { buildCleanHtml, stripHtml as stripHtmlText } from "@/lib/cleanContent";
 import { Suspense } from "react";
 
 interface ScrapedArticle {
@@ -194,22 +194,27 @@ function ReadPageInner() {
   }, []);
 
   useEffect(() => {
-    try { const s = sessionStorage.getItem("onyx_article"); if (s) setMeta(JSON.parse(s)); } catch {}
+    let m = null;
+    try { const s = sessionStorage.getItem("onyx_article"); if (s) { m = JSON.parse(s); setMeta(m); } } catch {}
     if (!url) { setError("No URL provided."); setLoading(false); return; }
     setSaved(isArticleSaved(url));
-    try {
-      const ck = "onyx_article_" + btoa(url).slice(0, 40);
-      const cached = localStorage.getItem(ck);
-      if (cached) { setArticle(JSON.parse(cached)); setLoading(false); return; }
-    } catch {}
-    fetch("/api/scrape?url=" + encodeURIComponent(url))
-      .then(r => r.ok ? r.json() : Promise.reject(new Error("HTTP " + r.status)))
-      .then(data => {
-        if (data.error) throw new Error(data.error);
-        setArticle(data); setLoading(false); try { const m = JSON.parse(sessionStorage.getItem("onyx_article") || "{}"); triggerForgeTask({ title: data.title, url: url, tag: m?.tag || "General" }, data.textContent || ""); } catch { triggerForgeTask({ title: data.title, url: url, tag: "General" }, data.textContent || ""); }
-        try { localStorage.setItem("onyx_article_" + btoa(url).slice(0, 40), JSON.stringify(data)); } catch {}
-      })
-      .catch(err => { setError(err.message || "Failed to load article."); setLoading(false); });
+
+    if (m && m.hasFullContent && m.content) {
+      const cleaned = buildCleanHtml(m.content);
+      const textContent = stripHtmlText(cleaned).slice(0, 3000);
+      const data = {
+        title: m.title || "Article",
+        content: cleaned,
+        textContent,
+        siteName: m.source === "medium" ? "Medium" : "DEV Community",
+      };
+      setArticle(data);
+      setLoading(false);
+      try { triggerForgeTask({ title: data.title, url: url, tag: m?.tag || "General" }, textContent); } catch {}
+    } else {
+      setError("This source only shares a preview here. Read the full piece on the original site.");
+      setLoading(false);
+    }
   }, [url]);
 
   function toggleDark() {
@@ -316,12 +321,6 @@ function ReadPageInner() {
               {meta?.tag && <span style={{ fontSize: "11px", fontFamily: "'DM Mono', monospace", color: "#786028", background: "rgba(212,175,55,0.08)", border: "1px solid rgba(212,175,55,0.2)", padding: "3px 10px", borderRadius: "20px", letterSpacing: "0.05em", textTransform: "uppercase" as const }}>{meta.tag}</span>}
               {meta?.readTime && <span style={{ fontSize: "11px", fontFamily: "'DM Mono', monospace", color: text3 }}>{meta.readTime}</span>}
             </div>
-            {article.isPaywalled && article.freediumUrl && (
-              <div style={{ display: "flex", alignItems: "center", gap: "10px", background: "rgba(107,70,193,0.08)", border: "1px solid rgba(107,70,193,0.25)", borderRadius: "10px", padding: "10px 14px", marginBottom: "20px" }}>
-                <span style={{ fontSize: "0.82rem", color: text2, fontFamily: "'DM Mono', monospace" }}>⚠ Partial — paywalled</span>
-                <a href={article.freediumUrl} target="_blank" rel="noopener noreferrer" style={{ marginLeft: "auto", fontSize: "0.82rem", fontFamily: "'DM Mono', monospace", color: "var(--accent3)", fontWeight: 600, textDecoration: "none" }}>Read on Freedium ↗</a>
-              </div>
-            )}
             {meta?.cover && (
               <div style={{
                 margin: "0 -20px 28px",

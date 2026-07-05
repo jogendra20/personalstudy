@@ -12,6 +12,8 @@ interface FeedItem {
   readTime: string;
   cover?: string;
   description?: string;
+  content?: string;
+  hasFullContent: boolean;
 }
 
 const FEEDS = [
@@ -146,10 +148,14 @@ function parseRSS(xml: string, source: string, tag: string): FeedItem[] {
       item.match(/<description>([\s\S]*?)<\/description>/i)
     )?.[1] || "";
 
-    const content = (
+    const rawContentEncoded = (
       item.match(/<content:encoded><!\[CDATA\[([\s\S]*?)\]\]><\/content:encoded>/i) ||
       item.match(/<content:encoded>([\s\S]*?)<\/content:encoded>/i)
-    )?.[1] || desc;
+    )?.[1];
+    const content = rawContentEncoded || desc;
+    const plainContentLen = stripHtml(content).length;
+    const plainDescLen = stripHtml(desc).length;
+    const hasFullContent = !!rawContentEncoded && plainContentLen > 600 && plainContentLen > plainDescLen * 2;
 
     const pubDate = (
       item.match(/<pubDate>([\s\S]*?)<\/pubDate>/i)
@@ -169,6 +175,8 @@ function parseRSS(xml: string, source: string, tag: string): FeedItem[] {
       readTime: estimateReadTime(content || desc),
       cover: extractCover(item),
       description: stripHtml(desc).slice(0, 150),
+      content: hasFullContent ? content : undefined,
+      hasFullContent,
     });
   }
 
