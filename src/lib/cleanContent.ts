@@ -1,8 +1,8 @@
-export function stripHtml(html) {
+export function stripHtml(html: string): string {
   return html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
 }
 
-export function buildCleanHtml(raw) {
+export function buildCleanHtml(raw: string): string {
   let html = raw;
   html = html
     .replace(/<script[\s\S]*?<\/script>/gi, "")
@@ -12,7 +12,7 @@ export function buildCleanHtml(raw) {
 
   let body = html;
 
-  body = body.replace(/<pre[^>]*>([\s\S]*?)<\/pre>/gi, (_m, inner) => {
+  body = body.replace(/<pre[^>]*>([\s\S]*?)<\/pre>/gi, (_m: string, inner: string) => {
     const text = inner
       .replace(/<code[^>]*>([\s\S]*?)<\/code>/gi, "$1")
       .replace(/<[^>]+>/g, "")
@@ -21,20 +21,20 @@ export function buildCleanHtml(raw) {
       .trim();
     return `<pre><code>${text}</code></pre>`;
   });
-  body = body.replace(/<code[^>]*>([\s\S]*?)<\/code>/gi, (_m, inner) => {
+  body = body.replace(/<code[^>]*>([\s\S]*?)<\/code>/gi, (_m: string, inner: string) => {
     const text = inner.replace(/<[^>]+>/g, "")
       .replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
     return `<code>${text}</code>`;
   });
 
-  body = body.replace(/<picture[^>]*>([\s\S]*?)<\/picture>/gi, (_m, inner) => {
+  body = body.replace(/<picture[^>]*>([\s\S]*?)<\/picture>/gi, (_m: string, inner: string) => {
     const srcset = inner.match(/srcset="([^"]+)"/i)?.[1];
     const src = inner.match(/src="([^"]+)"/i)?.[1];
-    const best = srcset ? srcset.split(",").pop().trim().split(" ")[0] : src;
+    const best = srcset ? srcset.split(",").pop()!.trim().split(" ")[0] : src;
     if (!best) return "";
     return `<img src="${best}" loading="lazy" />`;
   });
-  body = body.replace(/<img([^>]*)>/gi, (_m, attrs) => {
+  body = body.replace(/<img([^>]*)>/gi, (_m: string, attrs: string) => {
     const dataSrc = attrs.match(/data-src="([^"]+)"/i)?.[1];
     const src = attrs.match(/\bsrc="([^"]+)"/i)?.[1];
     const alt = attrs.match(/alt="([^"]*)"/i)?.[1] || "";
@@ -55,7 +55,7 @@ export function buildCleanHtml(raw) {
   const KEEP = new Set(["h1","h2","h3","h4","h5","h6","p","strong","em","code","pre",
     "blockquote","a","img","br","hr","ul","ol","li","figure","figcaption"]);
 
-  body = body.replace(/<\/?([a-z][a-z0-9]*)[^>]*>/gi, (match, tag) => {
+  body = body.replace(/<\/?([a-z][a-z0-9]*)[^>]*>/gi, (match: string, tag: string) => {
     return KEEP.has(tag.toLowerCase()) ? match : "";
   });
 
