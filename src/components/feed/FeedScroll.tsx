@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import FeedCard from "./FeedCard";
 import { Article, rankArticles, deduplicateArticles } from "@/lib/algorithm";
 import { logAction, getUserActions, getArticles } from "@/lib/supabase";
@@ -12,14 +13,18 @@ interface FeedScrollProps {
   scrollRef?: React.RefObject<HTMLDivElement>;
 }
 
+const FEED_CACHE_KEY = "onyx_feed_cache";
+const FEED_CACHE_TS_KEY = "onyx_feed_ts";
+const FEED_STALE_MS = 5 * 60 * 1000;
+
 export default function FeedScroll({ onXP, onBadge, scrollRef }: FeedScrollProps) {
+  const router = useRouter();
   const [articles, setArticles]   = useState<Article[]>([]);
   const [loading, setLoading]     = useState(true);
   const [page, setPage]           = useState(0);
   const containerRef              = useRef<HTMLDivElement>(null);
   const readTimers                = useRef<Record<string, number>>({});
 
-  // Preload images
   useEffect(() => {
     articles.slice(0, 5).forEach(a => {
       if (a.image_url) {
@@ -29,45 +34,59 @@ export default function FeedScroll({ onXP, onBadge, scrollRef }: FeedScrollProps
     });
   }, [articles]);
 
-  // Load feed
   useEffect(() => {
     loadFeed();
   }, []);
 
+  function mapRSS(raw: any[]): Article[] {
+    return raw.map((a: any, i: number) => ({
+      id: i,
+      url: a.url,
+      title: a.title,
+      source: a.source,
+      tag: a.tag,
+      summary: a.description || "",
+      image_url: a.cover || "",
+      score: 1,
+      created_at: a.publishedAt,
+      content: a.content,
+      hasFullContent: !!a.hasFullContent,
+    })) as Article[];
+  }
+
+  function loadCachedFeed(): Article[] | null {
+    if (typeof window === "undefined") return null;
+    try {
+      const ts = parseInt(localStorage.getItem(FEED_CACHE_TS_KEY) || "0");
+      if (Date.now() - ts > FEED_STALE_MS) return null;
+      const raw = localStorage.getItem(FEED_CACHE_KEY);
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch { return null; }
+  }
+
+  function saveFeedCache(items: Article[]): void {
+    if (typeof window === "undefined") return;
+    try {
+      localStorage.setItem(FEED_CACHE_KEY, JSON.stringify(items));
+      localStorage.setItem(FEED_CACHE_TS_KEY, Date.now().toString());
+    } catch {}
+  }
+
   async function loadFeed() {
+    const cached = loadCachedFeed();
+    if (cached && cached.length > 0) {
+      setArticles(cached.sort((a: Article, b: Article) => (b.image_url ? 1 : 0) - (a.image_url ? 1 : 0)));
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const res = await fetch("/api/feed");
       if (!res.ok) throw new Error("Feed failed");
       const raw = await res.json();
-      // Map RSS shape → Article shape FeedCard expects
-      console.log('RSS sample:', raw[0]);
-      const TAG_IMAGES: Record<string, string> = {
-        "AI": "artificial+intelligence+neural",
-        "ML": "machine+learning+data",
-        "Trading": "stock+market+trading+chart",
-        "DSA": "algorithm+code+programming",
-        "Python": "python+programming+code",
-        "System Design": "system+architecture+design",
-        "Web Dev": "web+development+coding",
-        "DevOps": "server+cloud+devops",
-        "Security": "cybersecurity+hacker",
-        "Career": "career+growth+success",
-        "Psychology": "mind+brain+psychology",
-        "Programming": "programming+software+code",
-        "Linux": "linux+terminal+code",
-      };
-      const mapped = raw.map((a: any, i: number) => ({
-        id: i,
-        url: a.url,
-        title: a.title,
-        source: a.source,
-        tag: a.tag,
-        summary: a.description || "",
-        image_url: a.cover || "",
-        score: 1,
-        created_at: a.publishedAt,
-      }));
+      const mapped = mapRSS(raw);
+      saveFeedCache(mapped);
       setArticles(mapped.sort((a: Article, b: Article) => (b.image_url ? 1 : 0) - (a.image_url ? 1 : 0)));
     } catch (e) {
       console.error("Feed load failed:", e);
@@ -76,7 +95,6 @@ export default function FeedScroll({ onXP, onBadge, scrollRef }: FeedScrollProps
     }
   }
 
-  // Load more when near end
   async function loadMore() {
     try {
       const raw = await getArticles(20);
@@ -86,19 +104,16 @@ export default function FeedScroll({ onXP, onBadge, scrollRef }: FeedScrollProps
     } catch {}
   }
 
-  // Track scroll position
   const handleScroll = useCallback(() => {
     if (!containerRef.current) return;
     const { scrollTop, clientHeight, scrollHeight } = containerRef.current;
     const currentIdx = Math.round(scrollTop / clientHeight);
     setPage(currentIdx);
 
-    // Load more near end
     if (scrollTop + clientHeight > scrollHeight - clientHeight * 2) {
       loadMore();
     }
 
-    // Track read time
     const article = articles[currentIdx];
     if (article) {
       if (!readTimers.current[article.url]) {
@@ -117,7 +132,6 @@ export default function FeedScroll({ onXP, onBadge, scrollRef }: FeedScrollProps
 
   function handleSkip(url: string, tag: string) {
     logAction({ url, action: "skip", tag });
-    // Scroll to next
     if (containerRef.current) {
       containerRef.current.scrollBy({ top: window.innerHeight, behavior: "smooth" });
     }
@@ -140,7 +154,7 @@ export default function FeedScroll({ onXP, onBadge, scrollRef }: FeedScrollProps
       updateQuestProgress(article.tag);
       try { sessionStorage.setItem('onyx_article', JSON.stringify(article)); } catch {}
     }
-    window.location.href = `/read?url=${encodeURIComponent(url)}`;
+    router.push(`/read?url=${encodeURIComponent(url)}`);
   }
 
   if (loading) {

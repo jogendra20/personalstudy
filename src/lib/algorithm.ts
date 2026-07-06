@@ -9,6 +9,9 @@ export interface Article {
   image_source?: string;
   score: number;
   created_at: string;
+  content?: string;
+  hasFullContent?: boolean;
+
 }
 
 export interface UserAction {
