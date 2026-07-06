@@ -216,15 +216,35 @@ export async function GET() {
     }
   }
 
-  // Shuffle differently every request using timestamp seed
-  const seed = Date.now();
-  all.sort((a, b) => {
-    const ha = (seed ^ a.url.length * 2654435761) >>> 0;
-    const hb = (seed ^ b.url.length * 2654435761) >>> 0;
-    return ha - hb;
-  });
+  // Group by source, shuffle each group, then round-robin interleave —
+  // guarantees every source surfaces evenly instead of clustering by
+  // incidental properties like URL length (which the old hash-sort did).
+  const bySource: Record<string, FeedItem[]> = {};
+  for (const item of all) {
+    if (!bySource[item.source]) bySource[item.source] = [];
+    bySource[item.source].push(item);
+  }
+  for (const key of Object.keys(bySource)) {
+    const arr = bySource[key];
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+  }
+  const sources = Object.keys(bySource);
+  const pointers: Record<string, number> = Object.fromEntries(sources.map(s => [s, 0]));
+  const interleaved: FeedItem[] = [];
+  let remaining = all.length;
+  while (remaining > 0) {
+    for (const s of sources) {
+      if (pointers[s] < bySource[s].length) {
+        interleaved.push(bySource[s][pointers[s]++]);
+        remaining--;
+      }
+    }
+  }
 
-  return NextResponse.json(all, {
+  return NextResponse.json(interleaved, {
     headers: {
       "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
     },
