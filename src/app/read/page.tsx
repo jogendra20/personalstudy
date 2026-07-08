@@ -195,10 +195,44 @@ function ReadPageInner() {
   }, []);
 
   useEffect(() => {
-    let m = null;
+    const CACHE_TTL_MS = 48 * 60 * 60 * 1000; // 48 hours
+    const cacheKey = (u: string) => "onyx_body_" + btoa(u).slice(0, 60);
+
+    // Light housekeeping: sweep expired cached bodies once per browser session
+    try {
+      if (!sessionStorage.getItem("onyx_swept")) {
+        for (let i = localStorage.length - 1; i >= 0; i--) {
+          const k = localStorage.key(i);
+          if (k && k.startsWith("onyx_body_")) {
+            try {
+              const entry = JSON.parse(localStorage.getItem(k) || "{}");
+              if (!entry.ts || Date.now() - entry.ts > CACHE_TTL_MS) localStorage.removeItem(k);
+            } catch { localStorage.removeItem(k); }
+          }
+        }
+        sessionStorage.setItem("onyx_swept", "1");
+      }
+    } catch {}
+
+    let m: any = null;
     try { const s = sessionStorage.getItem("onyx_article"); if (s) { m = JSON.parse(s); setMeta(m); } } catch {}
     if (!url) { setError("No URL provided."); setLoading(false); return; }
     setSaved(isArticleSaved(url));
+
+    // Instant repeat reads: serve from TTL cache if still fresh
+    try {
+      const raw = localStorage.getItem(cacheKey(url));
+      if (raw) {
+        const cached = JSON.parse(raw);
+        if (cached.ts && Date.now() - cached.ts < CACHE_TTL_MS && cached.data) {
+          setArticle(cached.data);
+          setLoading(false);
+          try { triggerForgeTask({ title: cached.data.title, url, tag: m?.tag || "General" }, cached.data.textContent || ""); } catch {}
+          return;
+        }
+        localStorage.removeItem(cacheKey(url));
+      }
+    } catch {}
 
     if (m && m.hasFullContent && m.content) {
       const cleaned = buildCleanHtml(m.content);
@@ -207,10 +241,11 @@ function ReadPageInner() {
         title: m.title || "Article",
         content: cleaned,
         textContent,
-        siteName: m.source === "medium" ? "Medium" : "DEV Community",
+        siteName: m.source === "medium" ? "Medium" : m.source === "devto" ? "DEV Community" : m.source,
       };
       setArticle(data);
       setLoading(false);
+      try { localStorage.setItem(cacheKey(url), JSON.stringify({ ts: Date.now(), data })); } catch {}
       try { triggerForgeTask({ title: data.title, url: url, tag: m?.tag || "General" }, textContent); } catch {}
     } else {
       setError("This source only shares a preview here. Read the full piece on the original site.");
