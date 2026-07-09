@@ -231,16 +231,29 @@ export async function GET() {
       [arr[i], arr[j]] = [arr[j], arr[i]];
     }
   }
-  const sources = Object.keys(bySource);
-  const pointers: Record<string, number> = Object.fromEntries(sources.map(s => [s, 0]));
-  const interleaved: FeedItem[] = [];
-  let remaining = all.length;
-  while (remaining > 0) {
-    for (const s of sources) {
-      if (pointers[s] < bySource[s].length) {
-        interleaved.push(bySource[s][pointers[s]++]);
-        remaining--;
+  const mediumItems = bySource["medium"] || [];
+  const otherSources = Object.keys(bySource).filter(s => s !== "medium");
+  const otherPointers: Record<string, number> = Object.fromEntries(otherSources.map(s => [s, 0]));
+  const otherStream: FeedItem[] = [];
+  let otherRemaining = otherSources.reduce((sum, s) => sum + bySource[s].length, 0);
+  while (otherRemaining > 0) {
+    for (const s of otherSources) {
+      if (otherPointers[s] < bySource[s].length) {
+        otherStream.push(bySource[s][otherPointers[s]++]);
+        otherRemaining--;
       }
+    }
+  }
+
+  // Weighted 5:1 — for every 5 non-Medium articles, allow 1 Medium article
+  const interleaved: FeedItem[] = [];
+  let oi = 0, mi = 0;
+  while (oi < otherStream.length || mi < mediumItems.length) {
+    for (let k = 0; k < 5 && oi < otherStream.length; k++) {
+      interleaved.push(otherStream[oi++]);
+    }
+    if (mi < mediumItems.length) {
+      interleaved.push(mediumItems[mi++]);
     }
   }
 
