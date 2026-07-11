@@ -19,11 +19,12 @@ const FEED_STALE_MS = 5 * 60 * 1000;
 
 export default function FeedScroll({ onXP, onBadge, scrollRef }: FeedScrollProps) {
   const router = useRouter();
-  const [articles, setArticles]   = useState<Article[]>([]);
-  const [loading, setLoading]     = useState(true);
-  const [page, setPage]           = useState(0);
-  const containerRef              = useRef<HTMLDivElement>(null);
-  const readTimers                = useRef<Record<string, number>>({});
+  const [articles, setArticles]     = useState<Article[]>([]);
+  const [loading, setLoading]       = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [page, setPage]             = useState(0);
+  const containerRef                = useRef<HTMLDivElement>(null);
+  const readTimers                  = useRef<Record<string, number>>({});
 
   useEffect(() => {
     articles.slice(0, 5).forEach(a => {
@@ -50,7 +51,7 @@ export default function FeedScroll({ onXP, onBadge, scrollRef }: FeedScrollProps
       score: 1,
       created_at: a.publishedAt,
       content: a.content,
-      hasFullContent: !!a.hasFullContent,
+      hasFullContent: Boolean(a.hasFullContent),
     })) as Article[];
   }
 
@@ -73,6 +74,14 @@ export default function FeedScroll({ onXP, onBadge, scrollRef }: FeedScrollProps
     } catch {}
   }
 
+  function clearFeedCache(): void {
+    if (typeof window === "undefined") return;
+    try {
+      localStorage.removeItem(FEED_CACHE_KEY);
+      localStorage.removeItem(FEED_CACHE_TS_KEY);
+    } catch {}
+  }
+
   async function loadFeed() {
     const cached = loadCachedFeed();
     if (cached && cached.length > 0) {
@@ -92,6 +101,30 @@ export default function FeedScroll({ onXP, onBadge, scrollRef }: FeedScrollProps
       console.error("Feed load failed:", e);
     } finally {
       setLoading(false);
+    }
+  }
+
+  // Manual refresh — bypasses both the localStorage cache AND the Vercel
+  // edge cache (via a cache-busting query param), so it always pulls a
+  // genuinely fresh set of articles from the RSS sources.
+  async function refreshFeed() {
+    if (refreshing) return;
+    setRefreshing(true);
+    clearFeedCache();
+    try {
+      const res = await fetch(`/api/feed?refresh=${Date.now()}`, { cache: "no-store" });
+      if (!res.ok) throw new Error("Feed refresh failed");
+      const raw = await res.json();
+      const mapped = mapRSS(raw);
+      saveFeedCache(mapped);
+      setArticles(mapped.sort((a: Article, b: Article) => (b.image_url ? 1 : 0) - (a.image_url ? 1 : 0)));
+      setPage(0);
+      containerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+      scrollRef?.current?.scrollTo({ top: 0, behavior: "smooth" });
+    } catch (e) {
+      console.error("Feed refresh failed:", e);
+    } finally {
+      setRefreshing(false);
     }
   }
 
@@ -157,6 +190,39 @@ export default function FeedScroll({ onXP, onBadge, scrollRef }: FeedScrollProps
     router.push(`/read?url=${encodeURIComponent(url)}`);
   }
 
+  const refreshButton = (
+    <button
+      onClick={refreshFeed}
+      disabled={refreshing || loading}
+      aria-label="Refresh feed"
+      style={{
+        position: "fixed", top: "16px", right: "16px", zIndex: 250,
+        width: "40px", height: "40px", borderRadius: "50%",
+        background: "rgba(10,10,11,0.75)",
+        border: "1px solid rgba(255,255,255,0.12)",
+        backdropFilter: "blur(12px)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        cursor: refreshing || loading ? "default" : "pointer",
+        opacity: refreshing || loading ? 0.6 : 1,
+        boxShadow: "0 4px 16px rgba(0,0,0,0.3)",
+        transition: "opacity 0.2s",
+      }}
+    >
+      <svg
+        width="18" height="18" viewBox="0 0 24 24" fill="none"
+        stroke="#D4AF37" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+        style={{
+          animation: refreshing ? "onyxSpin 0.8s linear infinite" : "none",
+        }}
+      >
+        <polyline points="23 4 23 10 17 10" />
+        <polyline points="1 20 1 14 7 14" />
+        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+      </svg>
+      <style>{`@keyframes onyxSpin { to { transform: rotate(360deg); } }`}</style>
+    </button>
+  );
+
   if (loading) {
     return (
       <div style={{
@@ -190,33 +256,37 @@ export default function FeedScroll({ onXP, onBadge, scrollRef }: FeedScrollProps
         <p style={{ color: "rgba(255,255,255,0.5)", fontFamily: "monospace" }}>
           No articles yet. Add some!
         </p>
+        {refreshButton}
       </div>
     );
   }
 
   return (
-    <div
-      ref={scrollRef || containerRef}
-      onScroll={handleScroll}
-      style={{
-        height: "100svh",
-        overflowY: "scroll",
-        scrollSnapType: "y mandatory",
-        scrollBehavior: "smooth",
-        WebkitOverflowScrolling: "touch",
-      }}
-    >
-      {articles.map((article, idx) => (
-        <FeedCard
-          key={article.url}
-          article={article}
-          isActive={idx === page}
-          onLike={handleLike}
-          onSkip={handleSkip}
-          onSave={handleSave}
-          onRead={handleRead}
-        />
-      ))}
-    </div>
+    <>
+      <div
+        ref={scrollRef || containerRef}
+        onScroll={handleScroll}
+        style={{
+          height: "100svh",
+          overflowY: "scroll",
+          scrollSnapType: "y mandatory",
+          scrollBehavior: "smooth",
+          WebkitOverflowScrolling: "touch",
+        }}
+      >
+        {articles.map((article, idx) => (
+          <FeedCard
+            key={article.url}
+            article={article}
+            isActive={idx === page}
+            onLike={handleLike}
+            onSkip={handleSkip}
+            onSave={handleSave}
+            onRead={handleRead}
+          />
+        ))}
+      </div>
+      {refreshButton}
+    </>
   );
 }
