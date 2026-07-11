@@ -164,7 +164,7 @@ function parseRSS(xml: string, source: string, tag: string): FeedItem[] {
     const content = rawContentEncoded || desc;
     const plainContentLen = stripHtml(content).length;
     const plainDescLen = stripHtml(desc).length;
-    const hasFullContent = onyxrawContentEncoded && plainContentLen > 600 && plainContentLen > plainDescLen * 2;
+    const hasFullContent = Boolean(rawContentEncoded) && plainContentLen > 600 && plainContentLen > plainDescLen * 2;
 
     const pubDate = (
       item.match(/<pubDate>([\s\S]*?)<\/pubDate>/i)
