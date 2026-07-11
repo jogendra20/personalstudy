@@ -6,7 +6,7 @@ export const revalidate = 300;
 interface FeedItem {
   title: string;
   url: string;
-  source: "devto" | "medium";
+  source: string;
   tag: string;
   publishedAt: string;
   readTime: string;
@@ -68,7 +68,7 @@ const FEEDS = [
   { url: "https://medium.com/feed/tag/reinforcement-learning",  source: "medium", tag: "ML" },
   { url: "https://medium.com/feed/tag/fastapi",                 source: "medium", tag: "Python" },
   { url: "https://medium.com/feed/tag/interview",               source: "medium", tag: "Career" },
-  // ── Trading ─────────────────────────────────────────────────────────────────
+  // ── Trading ─────────────────────────────────────────────────
   { url: "https://dev.to/feed/tag/trading",                     source: "devto",  tag: "Trading" },
   { url: "https://dev.to/feed/tag/stockmarket",                 source: "devto",  tag: "Trading" },
   { url: "https://medium.com/feed/tag/trading",                 source: "medium", tag: "Trading" },
@@ -77,7 +77,7 @@ const FEEDS = [
   { url: "https://medium.com/feed/tag/quantitative-finance",    source: "medium", tag: "Trading" },
   { url: "https://medium.com/feed/tag/technical-analysis",      source: "medium", tag: "Trading" },
 
-  // ── Psychology ───────────────────────────────────────────────────────────────
+  // ── Psychology ──────────────────────────────────────────────
   { url: "https://medium.com/feed/tag/psychology",              source: "medium", tag: "Psychology" },
   { url: "https://medium.com/feed/tag/cognitive-science",       source: "medium", tag: "Psychology" },
   { url: "https://medium.com/feed/tag/mental-health",           source: "medium", tag: "Psychology" },
@@ -87,6 +87,15 @@ const FEEDS = [
   { url: "https://medium.com/feed/tag/habit",                   source: "medium", tag: "Psychology" },
   { url: "https://medium.com/feed/tag/trading-psychology",      source: "medium", tag: "Psychology" },
   { url: "https://dev.to/feed/tag/mentalhealth",                source: "devto",  tag: "Psychology" },
+
+  // ── Free full-content blogs (non-Medium, non-dev.to) ───────────────────────
+  { url: "https://techcrunch.com/feed/",                         source: "techcrunch",   tag: "Tech News" },
+  { url: "https://techcrunch.com/category/artificial-intelligence/feed/", source: "techcrunch", tag: "AI" },
+  { url: "https://huggingface.co/blog/feed.xml",                 source: "huggingface",  tag: "AI" },
+  { url: "https://openai.com/news/rss.xml",                      source: "openai",       tag: "AI" },
+  { url: "https://deepmind.google/blog/rss.xml",                 source: "deepmind",     tag: "AI" },
+  { url: "https://developer.nvidia.com/blog/feed",               source: "nvidia",       tag: "AI" },
+  { url: "https://www.marktechpost.com/feed/",                   source: "marktechpost", tag: "AI" },
 ] as const;
 
 function stripHtml(html: string): string {
@@ -169,7 +178,7 @@ function parseRSS(xml: string, source: string, tag: string): FeedItem[] {
     items.push({
       title,
       url: link,
-      source: source as "devto" | "medium",
+      source,
       tag,
       publishedAt: pubDate,
       readTime: estimateReadTime(content || desc),
@@ -261,5 +270,6 @@ export async function GET() {
     headers: {
       "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
     },
-  });
+  };
+  };
 }
