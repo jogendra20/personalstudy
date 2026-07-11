@@ -68,7 +68,7 @@ const FEEDS = [
   { url: "https://medium.com/feed/tag/reinforcement-learning",  source: "medium", tag: "ML" },
   { url: "https://medium.com/feed/tag/fastapi",                 source: "medium", tag: "Python" },
   { url: "https://medium.com/feed/tag/interview",               source: "medium", tag: "Career" },
-  // ── Trading ─────────────────────────────────────────────────
+  // ── Trading ─────────────────────────────────────────────────────────────────
   { url: "https://dev.to/feed/tag/trading",                     source: "devto",  tag: "Trading" },
   { url: "https://dev.to/feed/tag/stockmarket",                 source: "devto",  tag: "Trading" },
   { url: "https://medium.com/feed/tag/trading",                 source: "medium", tag: "Trading" },
@@ -77,7 +77,7 @@ const FEEDS = [
   { url: "https://medium.com/feed/tag/quantitative-finance",    source: "medium", tag: "Trading" },
   { url: "https://medium.com/feed/tag/technical-analysis",      source: "medium", tag: "Trading" },
 
-  // ── Psychology ──────────────────────────────────────────────
+  // ── Psychology ───────────────────────────────────────────────────────────────
   { url: "https://medium.com/feed/tag/psychology",              source: "medium", tag: "Psychology" },
   { url: "https://medium.com/feed/tag/cognitive-science",       source: "medium", tag: "Psychology" },
   { url: "https://medium.com/feed/tag/mental-health",           source: "medium", tag: "Psychology" },
@@ -88,7 +88,7 @@ const FEEDS = [
   { url: "https://medium.com/feed/tag/trading-psychology",      source: "medium", tag: "Psychology" },
   { url: "https://dev.to/feed/tag/mentalhealth",                source: "devto",  tag: "Psychology" },
 
-  // ── Free full-content blogs (non-Medium, non-dev.to) ───────────────────────
+  // ── Free full-content blogs (non-Medium, non-dev.to) ─────────────────────────
   { url: "https://techcrunch.com/feed/",                         source: "techcrunch",   tag: "Tech News" },
   { url: "https://techcrunch.com/category/artificial-intelligence/feed/", source: "techcrunch", tag: "AI" },
   { url: "https://huggingface.co/blog/feed.xml",                 source: "huggingface",  tag: "AI" },
@@ -164,7 +164,7 @@ function parseRSS(xml: string, source: string, tag: string): FeedItem[] {
     const content = rawContentEncoded || desc;
     const plainContentLen = stripHtml(content).length;
     const plainDescLen = stripHtml(desc).length;
-    const hasFullContent = !!rawContentEncoded && plainContentLen > 600 && plainContentLen > plainDescLen * 2;
+    const hasFullContent = onyxrawContentEncoded && plainContentLen > 600 && plainContentLen > plainDescLen * 2;
 
     const pubDate = (
       item.match(/<pubDate>([\s\S]*?)<\/pubDate>/i)
@@ -270,6 +270,5 @@ export async function GET() {
     headers: {
       "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
     },
-  };
-  };
+  });
 }
