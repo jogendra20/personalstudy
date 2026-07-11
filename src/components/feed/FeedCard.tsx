@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { Article, recordRead, recordSkip, recordLike, getTagAffinity } from "@/lib/algorithm";
 
 interface FeedCardProps {
@@ -49,9 +50,14 @@ function fakeMinutesAgo(createdAt: string): string {
   return `${days}d ago`;
 }
 
+const SWIPE_COMMIT_PX = 100;
+const SWIPE_INTENT_PX = 8;
+const SWIPE_HINT_PX = 50;
+
 export default function FeedCard({
   article, onLike, onSkip, onSave, onRead, isActive
 }: FeedCardProps) {
+  const router = useRouter();
   const [liked, setLiked]           = useState(false);
   const [transitioning, setTransitioning] = useState(false);
   const [saved, setSaved]           = useState(false);
@@ -59,8 +65,11 @@ export default function FeedCard({
   const [imgLoaded, setImgLoaded]   = useState(false);
   const [voted, setVoted]           = useState<string | null>(null);
   const [affinity, setAffinity]     = useState(1.0);
+  const [swipeHint, setSwipeHint]   = useState<"read" | "save" | null>(null);
   const lastTap                     = useRef(0);
   const readStart                   = useRef<number>(0);
+  const cardRef                     = useRef<HTMLDivElement>(null);
+  const dragState = useRef({ startX: 0, startY: 0, dx: 0, active: false, locked: null as "h" | "v" | null });
 
   useEffect(() => {
     if (isActive) {
@@ -121,9 +130,88 @@ export default function FeedCard({
     onSkip(article.url, article.tag);
   }
 
+  function handleSaveViaSwipe() {
+    setSaved(true);
+    onSave(article.url, article.tag);
+    setTimeout(() => router.push("/library"), 320);
+  }
+
+  // ── Swipe gestures: right = read, left = save ─────────────────────
+  // touchAction:"pan-y" lets the browser keep handling vertical feed
+  // scrolling natively; we only intercept clearly-horizontal drags.
+  const applyTransform = (dx: number) => {
+    if (!cardRef.current) return;
+    cardRef.current.style.transform = `translateX(${dx}px) rotate(${dx / 24}deg)`;
+  };
+
+  const resetTransform = (animate: boolean) => {
+    if (!cardRef.current) return;
+    cardRef.current.style.transition = animate ? "transform 0.35s cubic-bezier(0.34,1.56,0.64,1)" : "none";
+    cardRef.current.style.transform = "translateX(0px) rotate(0deg)";
+  };
+
+  const onMoveRef = useRef((e: PointerEvent) => {});
+  const onUpRef   = useRef((e: PointerEvent) => {});
+
+  onMoveRef.current = (e: PointerEvent) => {
+    const st = dragState.current;
+    if (!st.active) return;
+    const dx = e.clientX - st.startX;
+    const dy = e.clientY - st.startY;
+    if (st.locked === null && (Math.abs(dx) > SWIPE_INTENT_PX || Math.abs(dy) > SWIPE_INTENT_PX)) {
+      st.locked = Math.abs(dx) > Math.abs(dy) ? "h" : "v";
+    }
+    if (st.locked !== "h") return;
+    st.dx = dx;
+    applyTransform(dx);
+    setSwipeHint(dx > SWIPE_HINT_PX ? "read" : dx < -SWIPE_HINT_PX ? "save" : null);
+  };
+
+  onUpRef.current = () => {
+    const st = dragState.current;
+    const wasHorizontal = st.locked === "h";
+    const dx = st.dx;
+    st.active = false;
+    st.locked = null;
+    st.dx = 0;
+    window.removeEventListener("pointermove", stableMove);
+    window.removeEventListener("pointerup", stableUp);
+    setSwipeHint(null);
+
+    if (wasHorizontal && dx > SWIPE_COMMIT_PX) {
+      resetTransform(false);
+      handleRead();
+    } else if (wasHorizontal && dx < -SWIPE_COMMIT_PX) {
+      handleSaveViaSwipe();
+      resetTransform(true);
+    } else {
+      resetTransform(true);
+    }
+  };
+
+  const stableMove = useCallback((e: PointerEvent) => onMoveRef.current(e), []);
+  const stableUp   = useCallback((e: PointerEvent) => onUpRef.current(e), []);
+
+  function onPointerDown(e: React.PointerEvent) {
+    if ((e.target as HTMLElement).closest("button")) return;
+    dragState.current = { startX: e.clientX, startY: e.clientY, dx: 0, active: true, locked: null };
+    if (cardRef.current) cardRef.current.style.transition = "none";
+    window.addEventListener("pointermove", stableMove);
+    window.addEventListener("pointerup", stableUp);
+  }
+
+  useEffect(() => {
+    return () => {
+      window.removeEventListener("pointermove", stableMove);
+      window.removeEventListener("pointerup", stableUp);
+    };
+  }, [stableMove, stableUp]);
+
   return (
     <div
+      ref={cardRef}
       onClick={handleDoubleTap}
+      onPointerDown={onPointerDown}
       style={{
         position: "relative",
         width: "100%",
@@ -135,8 +223,35 @@ export default function FeedCard({
         scrollSnapStop: "always",
         overflow: "hidden",
         fontFamily: "'Inter', sans-serif",
+        touchAction: "pan-y",
       }}
     >
+      {/* Swipe hints */}
+      {swipeHint === "read" && (
+        <div style={{
+          position: "absolute", top: "80px", right: "20px", zIndex: 60,
+          background: "rgba(212,175,55,0.92)", color: "#111",
+          fontSize: "11px", fontWeight: 800, letterSpacing: "0.1em",
+          textTransform: "uppercase", padding: "8px 16px",
+          borderRadius: "999px", pointerEvents: "none",
+          boxShadow: "0 4px 16px rgba(0,0,0,0.25)",
+        }}>
+          Read Article ›
+        </div>
+      )}
+      {swipeHint === "save" && (
+        <div style={{
+          position: "absolute", top: "80px", left: "20px", zIndex: 60,
+          background: "rgba(17,17,17,0.9)", color: "#D4AF37",
+          fontSize: "11px", fontWeight: 800, letterSpacing: "0.1em",
+          textTransform: "uppercase", padding: "8px 16px",
+          borderRadius: "999px", pointerEvents: "none",
+          boxShadow: "0 4px 16px rgba(0,0,0,0.25)",
+        }}>
+          ‹ Save
+        </div>
+      )}
+
       {/* Rotated category label — on outer wrapper */}
       <div style={{
         position: "absolute", left: "0", top: "25%",
@@ -234,15 +349,15 @@ export default function FeedCard({
         ) : (
           <div style={{
             width: "100%", height: "100%",
-            display: "flex", alignItems: "center",
-            justifyContent: "center", fontSize: "72px",
-            background: "linear-gradient(135deg, #f5f0e8, #ede8df)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            background: "linear-gradient(135deg, #f0ede6, #e8e4db)",
+            fontSize: "64px",
           }}>
             {emoji}
           </div>
         )}
 
-        {/* Dark scrim */}
+        {/* Gradient overlay */}
         <div style={{
           position: "absolute", inset: 0,
           background: "linear-gradient(to bottom, rgba(0,0,0,0) 20%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.82) 100%)",
@@ -361,9 +476,7 @@ export default function FeedCard({
           </p>
         )}
 
-
-
-        {/* Bottom actions */}
+        {/* Bottom row: swipe hint + like/save icons */}
         <div style={{
           display: "flex", alignItems: "center",
           justifyContent: "space-between",
@@ -371,25 +484,12 @@ export default function FeedCard({
           paddingBottom: "16px",
           borderTop: "1px solid rgba(0,0,0,0.06)",
         }}>
-          {/* Read CTA */}
-          <button
-            onClick={(e) => { e.stopPropagation(); handleRead(); }}
-            style={{
-              display: "flex", alignItems: "center", gap: "10px",
-              background: "#111", color: "#fff",
-              fontSize: "11px", fontWeight: 700,
-              letterSpacing: "0.08em", textTransform: "uppercase",
-              padding: "14px 24px", borderRadius: "999px",
-              border: "none", cursor: "pointer",
-              boxShadow: "0 8px 24px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.1)",
-              transition: "all 0.2s",
-            }}
-          >
-            <span>Read Article</span>
-            <span style={{
-              color: "#D4AF37", fontSize: "16px", fontWeight: 300,
-            }}>›</span>
-          </button>
+          <span style={{
+            fontSize: "10px", fontWeight: 600, color: "#bbb",
+            letterSpacing: "0.06em", textTransform: "uppercase",
+          }}>
+            ‹ Save&nbsp;&nbsp;&nbsp;Read ›
+          </span>
 
           {/* Icon actions */}
           <div style={{ display: "flex", gap: "8px" }}>

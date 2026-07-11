@@ -82,10 +82,22 @@ export default function FeedScroll({ onXP, onBadge, scrollRef }: FeedScrollProps
     } catch {}
   }
 
+  // Run freshly-loaded RSS articles through the same personalization
+  // algorithm used for infinite-scroll (tag affinity, freshness, goal
+  // match) instead of the old naive "has an image" sort.
+  async function rankFresh(items: Article[]): Promise<Article[]> {
+    try {
+      const actions = await getUserActions();
+      return deduplicateArticles(rankArticles(items, actions, null));
+    } catch {
+      return deduplicateArticles(items);
+    }
+  }
+
   async function loadFeed() {
     const cached = loadCachedFeed();
     if (cached && cached.length > 0) {
-      setArticles(cached.sort((a: Article, b: Article) => (b.image_url ? 1 : 0) - (a.image_url ? 1 : 0)));
+      setArticles(await rankFresh(cached));
       setLoading(false);
       return;
     }
@@ -96,7 +108,7 @@ export default function FeedScroll({ onXP, onBadge, scrollRef }: FeedScrollProps
       const raw = await res.json();
       const mapped = mapRSS(raw);
       saveFeedCache(mapped);
-      setArticles(mapped.sort((a: Article, b: Article) => (b.image_url ? 1 : 0) - (a.image_url ? 1 : 0)));
+      setArticles(await rankFresh(mapped));
     } catch (e) {
       console.error("Feed load failed:", e);
     } finally {
@@ -117,7 +129,7 @@ export default function FeedScroll({ onXP, onBadge, scrollRef }: FeedScrollProps
       const raw = await res.json();
       const mapped = mapRSS(raw);
       saveFeedCache(mapped);
-      setArticles(mapped.sort((a: Article, b: Article) => (b.image_url ? 1 : 0) - (a.image_url ? 1 : 0)));
+      setArticles(await rankFresh(mapped));
       setPage(0);
       containerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
       scrollRef?.current?.scrollTo({ top: 0, behavior: "smooth" });
