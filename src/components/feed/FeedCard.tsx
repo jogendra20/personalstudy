@@ -35,13 +35,7 @@ const TAG_TRENDING: Record<string, string> = {
   "Programming": "Editor's Pick",
 };
 
-function fakeReads(url: string): string {
-  const hash = url.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
-  const n = (hash % 900) + 100;
-  return n >= 1000 ? `${(n / 1000).toFixed(1)}k` : `${n}`;
-}
-
-function fakeMinutesAgo(createdAt: string): string {
+function minutesAgo(createdAt: string): string {
   const age = Date.now() - new Date(createdAt).getTime();
   const hours = Math.floor(age / (1000 * 60 * 60));
   if (hours < 1) return "Just now";
@@ -88,8 +82,7 @@ export default function FeedCard({
     ? Math.max(1, Math.ceil(article.summary.split(" ").length / 200))
     : 3;
 
-  const reads    = fakeReads(article.url);
-  const timeAgo  = fakeMinutesAgo(article.created_at);
+  const timeAgo  = minutesAgo(article.created_at);
 
   const cleanSummary = article.summary
     ? article.summary
@@ -439,11 +432,6 @@ export default function FeedCard({
 
         {/* Meta row with icons */}
         <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2px" }}>
-            <span style={{ fontSize: "11px", fontWeight: 700, color: "#333" }}>{reads}</span>
-            <span style={{ fontSize: "8px", color: "#bbb", letterSpacing: "0.08em", textTransform: "uppercase" }}>Readers</span>
-          </div>
-          <div style={{ width: "1px", height: "24px", background: "rgba(0,0,0,0.08)" }} />
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2px" }}>
             <span style={{ fontSize: "11px", fontWeight: 700, color: "#333" }}>{timeAgo}</span>
             <span style={{ fontSize: "8px", color: "#bbb", letterSpacing: "0.08em", textTransform: "uppercase" }}>Ago</span>
