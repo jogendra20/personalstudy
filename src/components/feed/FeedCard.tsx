@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useRef, useEffect } from "react";
 import { Article, recordRead, recordSkip, recordLike, getTagAffinity } from "@/lib/algorithm";
+import { optimizeImage } from "@/lib/imageProxy";
 
 interface FeedCardProps {
   article: Article;
@@ -44,26 +44,17 @@ function minutesAgo(createdAt: string): string {
   return `${days}d ago`;
 }
 
-const SWIPE_COMMIT_PX = 100;
-const SWIPE_INTENT_PX = 8;
-const SWIPE_HINT_PX = 50;
-
 export default function FeedCard({
   article, onLike, onSkip, onSave, onRead, isActive
 }: FeedCardProps) {
-  const router = useRouter();
   const [liked, setLiked]           = useState(false);
   const [transitioning, setTransitioning] = useState(false);
   const [saved, setSaved]           = useState(false);
   const [tapped, setTapped]         = useState(false);
   const [imgLoaded, setImgLoaded]   = useState(false);
-  const [voted, setVoted]           = useState<string | null>(null);
   const [affinity, setAffinity]     = useState(1.0);
-  const [swipeHint, setSwipeHint]   = useState<"read" | "save" | null>(null);
   const lastTap                     = useRef(0);
   const readStart                   = useRef<number>(0);
-  const cardRef                     = useRef<HTMLDivElement>(null);
-  const dragState = useRef({ startX: 0, startY: 0, dx: 0, active: false, locked: null as "h" | "v" | null });
 
   useEffect(() => {
     if (isActive) {
@@ -94,6 +85,7 @@ export default function FeedCard({
     : null;
   const trending = TAG_TRENDING[article.tag] || "Curated for you";
   const emoji    = TAG_EMOJI[article.tag] || "📚";
+  const imgSrc   = optimizeImage(article.image_url, 640, 70);
 
   // Affinity bar width (1-5 scale → 20%-100%)
   const affinityPct = Math.round((affinity / 5) * 100);
@@ -123,88 +115,9 @@ export default function FeedCard({
     onSkip(article.url, article.tag);
   }
 
-  function handleSaveViaSwipe() {
-    setSaved(true);
-    onSave(article.url, article.tag);
-    setTimeout(() => router.push("/library"), 320);
-  }
-
-  // ── Swipe gestures: right = read, left = save ─────────────────────
-  // touchAction:"pan-y" lets the browser keep handling vertical feed
-  // scrolling natively; we only intercept clearly-horizontal drags.
-  const applyTransform = (dx: number) => {
-    if (!cardRef.current) return;
-    cardRef.current.style.transform = `translateX(${dx}px) rotate(${dx / 24}deg)`;
-  };
-
-  const resetTransform = (animate: boolean) => {
-    if (!cardRef.current) return;
-    cardRef.current.style.transition = animate ? "transform 0.35s cubic-bezier(0.34,1.56,0.64,1)" : "none";
-    cardRef.current.style.transform = "translateX(0px) rotate(0deg)";
-  };
-
-  const onMoveRef = useRef((e: PointerEvent) => {});
-  const onUpRef   = useRef((e: PointerEvent) => {});
-
-  onMoveRef.current = (e: PointerEvent) => {
-    const st = dragState.current;
-    if (!st.active) return;
-    const dx = e.clientX - st.startX;
-    const dy = e.clientY - st.startY;
-    if (st.locked === null && (Math.abs(dx) > SWIPE_INTENT_PX || Math.abs(dy) > SWIPE_INTENT_PX)) {
-      st.locked = Math.abs(dx) > Math.abs(dy) ? "h" : "v";
-    }
-    if (st.locked !== "h") return;
-    st.dx = dx;
-    applyTransform(dx);
-    setSwipeHint(dx > SWIPE_HINT_PX ? "read" : dx < -SWIPE_HINT_PX ? "save" : null);
-  };
-
-  onUpRef.current = () => {
-    const st = dragState.current;
-    const wasHorizontal = st.locked === "h";
-    const dx = st.dx;
-    st.active = false;
-    st.locked = null;
-    st.dx = 0;
-    window.removeEventListener("pointermove", stableMove);
-    window.removeEventListener("pointerup", stableUp);
-    setSwipeHint(null);
-
-    if (wasHorizontal && dx > SWIPE_COMMIT_PX) {
-      resetTransform(false);
-      handleRead();
-    } else if (wasHorizontal && dx < -SWIPE_COMMIT_PX) {
-      handleSaveViaSwipe();
-      resetTransform(true);
-    } else {
-      resetTransform(true);
-    }
-  };
-
-  const stableMove = useCallback((e: PointerEvent) => onMoveRef.current(e), []);
-  const stableUp   = useCallback((e: PointerEvent) => onUpRef.current(e), []);
-
-  function onPointerDown(e: React.PointerEvent) {
-    if ((e.target as HTMLElement).closest("button")) return;
-    dragState.current = { startX: e.clientX, startY: e.clientY, dx: 0, active: true, locked: null };
-    if (cardRef.current) cardRef.current.style.transition = "none";
-    window.addEventListener("pointermove", stableMove);
-    window.addEventListener("pointerup", stableUp);
-  }
-
-  useEffect(() => {
-    return () => {
-      window.removeEventListener("pointermove", stableMove);
-      window.removeEventListener("pointerup", stableUp);
-    };
-  }, [stableMove, stableUp]);
-
   return (
     <div
-      ref={cardRef}
       onClick={handleDoubleTap}
-      onPointerDown={onPointerDown}
       style={{
         position: "relative",
         width: "100%",
@@ -216,35 +129,8 @@ export default function FeedCard({
         scrollSnapStop: "always",
         overflow: "hidden",
         fontFamily: "'Inter', sans-serif",
-        touchAction: "pan-y",
       }}
     >
-      {/* Swipe hints */}
-      {swipeHint === "read" && (
-        <div style={{
-          position: "absolute", top: "80px", right: "20px", zIndex: 60,
-          background: "rgba(212,175,55,0.92)", color: "#111",
-          fontSize: "11px", fontWeight: 800, letterSpacing: "0.1em",
-          textTransform: "uppercase", padding: "8px 16px",
-          borderRadius: "999px", pointerEvents: "none",
-          boxShadow: "0 4px 16px rgba(0,0,0,0.25)",
-        }}>
-          Read Article ›
-        </div>
-      )}
-      {swipeHint === "save" && (
-        <div style={{
-          position: "absolute", top: "80px", left: "20px", zIndex: 60,
-          background: "rgba(17,17,17,0.9)", color: "#D4AF37",
-          fontSize: "11px", fontWeight: 800, letterSpacing: "0.1em",
-          textTransform: "uppercase", padding: "8px 16px",
-          borderRadius: "999px", pointerEvents: "none",
-          boxShadow: "0 4px 16px rgba(0,0,0,0.25)",
-        }}>
-          ‹ Save
-        </div>
-      )}
-
       {/* Rotated category label — on outer wrapper */}
       <div style={{
         position: "absolute", left: "0", top: "25%",
@@ -312,6 +198,58 @@ export default function FeedCard({
         </button>
       </div>
 
+      {/* Right-side action rail — like / save / read */}
+      <div style={{
+        position: "absolute", right: "12px", bottom: "220px",
+        zIndex: 45, display: "flex", flexDirection: "column", gap: "14px",
+      }}>
+        <RailBtn
+          active={liked}
+          label={liked ? "Liked" : "Like"}
+          onClick={(e) => {
+            e.stopPropagation();
+            setLiked(!liked);
+            recordLike(article.tag);
+            onLike(article.url, article.tag);
+          }}
+          icon={
+            <svg width="20" height="20" viewBox="0 0 24 24"
+              fill={liked ? "#D4AF37" : "none"}
+              stroke={liked ? "#D4AF37" : "#fff"} strokeWidth="2">
+              <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.318L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+            </svg>
+          }
+        />
+        <RailBtn
+          active={saved}
+          label={saved ? "Saved" : "Save"}
+          onClick={(e) => {
+            e.stopPropagation();
+            setSaved(!saved);
+            onSave(article.url, article.tag);
+          }}
+          icon={
+            <svg width="20" height="20" viewBox="0 0 24 24"
+              fill={saved ? "#D4AF37" : "none"}
+              stroke={saved ? "#D4AF37" : "#fff"} strokeWidth="2">
+              <path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/>
+            </svg>
+          }
+        />
+        <RailBtn
+          active={false}
+          label="Read"
+          onClick={(e) => { e.stopPropagation(); handleRead(); }}
+          icon={
+            <svg width="20" height="20" viewBox="0 0 24 24"
+              fill="none" stroke="#fff" strokeWidth="2">
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+            </svg>
+          }
+        />
+      </div>
+
       {/* IMAGE */}
       <div style={{
         position: "relative",
@@ -327,11 +265,13 @@ export default function FeedCard({
           }} />
         )}
 
-        {article.image_url ? (
+        {imgSrc ? (
           <img
-            src={article.image_url}
+            src={imgSrc}
             alt={article.title}
+            loading="lazy"
             onLoad={() => setImgLoaded(true)}
+            onError={() => setImgLoaded(true)}
             style={{
               width: "100%", height: "100%",
               objectFit: "cover",
@@ -430,7 +370,7 @@ export default function FeedCard({
         boxShadow: "0 -4px 32px rgba(0,0,0,0.12)",
       }}>
 
-        {/* Meta row with icons */}
+        {/* Meta row */}
         <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2px" }}>
             <span style={{ fontSize: "11px", fontWeight: 700, color: "#333" }}>{timeAgo}</span>
@@ -463,57 +403,6 @@ export default function FeedCard({
             {cleanSummary}
           </p>
         )}
-
-        {/* Bottom row: swipe hint + like/save icons */}
-        <div style={{
-          display: "flex", alignItems: "center",
-          justifyContent: "space-between",
-          paddingTop: "16px",
-          paddingBottom: "16px",
-          borderTop: "1px solid rgba(0,0,0,0.06)",
-        }}>
-          <span style={{
-            fontSize: "10px", fontWeight: 600, color: "#bbb",
-            letterSpacing: "0.06em", textTransform: "uppercase",
-          }}>
-            ‹ Save&nbsp;&nbsp;&nbsp;Read ›
-          </span>
-
-          {/* Icon actions */}
-          <div style={{ display: "flex", gap: "8px" }}>
-            <IconBtn
-              active={liked}
-              onClick={(e) => {
-                e.stopPropagation();
-                setLiked(!liked);
-                recordLike(article.tag);
-                onLike(article.url, article.tag);
-              }}
-              icon={
-                <svg width="18" height="18" viewBox="0 0 24 24"
-                  fill={liked ? "#D4AF37" : "none"}
-                  stroke={liked ? "#D4AF37" : "#aaa"} strokeWidth="2">
-                  <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.318L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
-                </svg>
-              }
-            />
-            <IconBtn
-              active={saved}
-              onClick={(e) => {
-                e.stopPropagation();
-                setSaved(!saved);
-                onSave(article.url, article.tag);
-              }}
-              icon={
-                <svg width="18" height="18" viewBox="0 0 24 24"
-                  fill={saved ? "#D4AF37" : "none"}
-                  stroke={saved ? "#D4AF37" : "#aaa"} strokeWidth="2">
-                  <path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/>
-                </svg>
-              }
-            />
-          </div>
-        </div>
       </div>
 
       {/* Transition overlay */}
@@ -546,22 +435,39 @@ export default function FeedCard({
   );
 }
 
-function IconBtn({ active, onClick, icon }: {
+function RailBtn({ active, onClick, icon, label }: {
   active: boolean;
   onClick: (e: React.MouseEvent) => void;
   icon: React.ReactNode;
+  label: string;
 }) {
   return (
     <button onClick={onClick} style={{
-      width: "44px", height: "44px",
-      borderRadius: "50%", background: "#fff",
-      border: `1px solid ${active ? "#D4AF37" : "rgba(0,0,0,0.08)"}`,
-      display: "flex", alignItems: "center", justifyContent: "center",
-      cursor: "pointer",
-      boxShadow: active ? "0 0 12px rgba(212,175,55,0.3)" : "0 2px 8px rgba(0,0,0,0.06)",
-      transition: "all 0.2s",
+      display: "flex", flexDirection: "column",
+      alignItems: "center", gap: "4px",
+      background: "none", border: "none", cursor: "pointer",
+      padding: 0,
     }}>
-      {icon}
+      <div style={{
+        width: "44px", height: "44px",
+        borderRadius: "50%",
+        background: active ? "rgba(212,175,55,0.22)" : "rgba(0,0,0,0.32)",
+        backdropFilter: "blur(6px)",
+        border: `1px solid ${active ? "#D4AF37" : "rgba(255,255,255,0.25)"}`,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        boxShadow: active ? "0 0 14px rgba(212,175,55,0.35)" : "0 2px 10px rgba(0,0,0,0.2)",
+        transition: "all 0.2s",
+      }}>
+        {icon}
+      </div>
+      <span style={{
+        fontSize: "8px", fontWeight: 700,
+        color: active ? "#D4AF37" : "rgba(255,255,255,0.9)",
+        textTransform: "uppercase", letterSpacing: "0.04em",
+        textShadow: "0 1px 4px rgba(0,0,0,0.5)",
+      }}>
+        {label}
+      </span>
     </button>
   );
 }

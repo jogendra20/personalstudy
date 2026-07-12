@@ -6,6 +6,7 @@ import FeedCard from "./FeedCard";
 import { Article, rankArticles, deduplicateArticles } from "@/lib/algorithm";
 import { logAction, getUserActions, getArticles } from "@/lib/supabase";
 import { updateStreak, addXP, updateQuestProgress, XP_REWARDS } from "@/lib/gamification";
+import { optimizeImage, isSlowConnection } from "@/lib/imageProxy";
 
 interface FeedScrollProps {
   onXP: (amount: number, reason: string) => void;
@@ -27,10 +28,15 @@ export default function FeedScroll({ onXP, onBadge, scrollRef }: FeedScrollProps
   const readTimers                  = useRef<Record<string, number>>({});
 
   useEffect(() => {
-    articles.slice(0, 5).forEach(a => {
-      if (a.image_url) {
+    // Don't spend a slow-3G user's bandwidth prefetching images they
+    // may never scroll to. Only prefetch the next couple of cards, and
+    // only the compressed version, not the original full-size image.
+    if (isSlowConnection()) return;
+    articles.slice(0, 2).forEach(a => {
+      const src = optimizeImage(a.image_url, 640, 70);
+      if (src) {
         const img = new Image();
-        img.src = a.image_url;
+        img.src = src;
       }
     });
   }, [articles]);
