@@ -11,6 +11,7 @@ interface FeedCardProps {
   onSave: (url: string, tag: string) => void;
   onRead: (url: string) => void;
   isActive: boolean;
+  loadImage?: boolean;
 }
 
 const TAG_EMOJI: Record<string, string> = {
@@ -45,7 +46,7 @@ function minutesAgo(createdAt: string): string {
 }
 
 export default function FeedCard({
-  article, onLike, onSkip, onSave, onRead, isActive
+  article, onLike, onSkip, onSave, onRead, isActive, loadImage = true
 }: FeedCardProps) {
   const [liked, setLiked]           = useState(false);
   const [transitioning, setTransitioning] = useState(false);
@@ -85,7 +86,7 @@ export default function FeedCard({
     : null;
   const trending = TAG_TRENDING[article.tag] || "Curated for you";
   const emoji    = TAG_EMOJI[article.tag] || "📚";
-  const imgSrc   = optimizeImage(article.image_url, 640, 70);
+  const imgSrc   = loadImage ? optimizeImage(article.image_url, 640, 70) : undefined;
 
   // Affinity bar width (1-5 scale → 20%-100%)
   const affinityPct = Math.round((affinity / 5) * 100);

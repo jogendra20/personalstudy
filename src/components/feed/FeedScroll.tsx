@@ -90,11 +90,24 @@ export default function FeedScroll({ onXP, onBadge, scrollRef }: FeedScrollProps
 
   // Run freshly-loaded RSS articles through the same personalization
   // algorithm used for infinite-scroll (tag affinity, freshness, goal
-  // match) instead of the old naive "has an image" sort.
+  // match) — but WITHIN each source, then re-interleave 5:1. A plain
+  // global sort here would undo the feed's Medium-vs-rest balance,
+  // since Medium's tag feeds are near-always the "freshest" and most
+  // consistently have cover images, so a naive sort floats Medium back
+  // to the top of the feed.
   async function rankFresh(items: Article[]): Promise<Article[]> {
     try {
       const actions = await getUserActions();
-      return deduplicateArticles(rankArticles(items, actions, null));
+      const ranked = rankArticles(items, actions, null); // scored + globally sorted
+      const medium = ranked.filter(a => a.source === "medium");
+      const other  = ranked.filter(a => a.source !== "medium");
+      const balanced: Article[] = [];
+      let oi = 0, mi = 0;
+      while (oi < other.length || mi < medium.length) {
+        for (let k = 0; k < 5 && oi < other.length; k++) balanced.push(other[oi++]);
+        if (mi < medium.length) balanced.push(medium[mi++]);
+      }
+      return deduplicateArticles(balanced);
     } catch {
       return deduplicateArticles(items);
     }
@@ -297,6 +310,7 @@ export default function FeedScroll({ onXP, onBadge, scrollRef }: FeedScrollProps
             key={article.url}
             article={article}
             isActive={idx === page}
+            loadImage={Math.abs(idx - page) <= 3}
             onLike={handleLike}
             onSkip={handleSkip}
             onSave={handleSave}
