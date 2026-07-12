@@ -161,10 +161,25 @@ function parseRSS(xml: string, source: string, tag: string): FeedItem[] {
       item.match(/<content:encoded><!\[CDATA\[([\s\S]*?)\]\]><\/content:encoded>/i) ||
       item.match(/<content:encoded>([\s\S]*?)<\/content:encoded>/i)
     )?.[1];
-    const content = rawContentEncoded || desc;
-    const plainContentLen = stripHtml(content).length;
+
     const plainDescLen = stripHtml(desc).length;
-    const hasFullContent = Boolean(rawContentEncoded) && plainContentLen > 600 && plainContentLen > plainDescLen * 2;
+    let content: string;
+    let hasFullContent: boolean;
+
+    if (rawContentEncoded) {
+      const plainContentLen = stripHtml(rawContentEncoded).length;
+      content = rawContentEncoded;
+      hasFullContent = plainContentLen > 600 && plainContentLen > plainDescLen * 2;
+    } else {
+      // Some platforms (dev.to/Forem among them) put the full article
+      // body directly in <description> instead of using content:encoded
+      // at all. In that case there's nothing to meaningfully compare
+      // description against — it IS the content — so we judge it on its
+      // own length instead. 800 chars comfortably separates a genuine
+      // full article from a 1-2 sentence teaser.
+      content = desc;
+      hasFullContent = plainDescLen > 800;
+    }
 
     const pubDate = (
       item.match(/<pubDate>([\s\S]*?)<\/pubDate>/i)

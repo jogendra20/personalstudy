@@ -1,23 +1,26 @@
 /**
- * supabase.ts - Supabase client for ONYX
+ * supabase.ts — data access for ONYX.
+ *
+ * User actions (likes/saves/reads) are scoped to a real, unspoofable
+ * per-visitor identity via Supabase Anonymous Auth (see
+ * supabaseClient.ts). Row Level Security on `user_actions` restricts
+ * each person to their own rows.
  */
+import { getSupabase, ensureAnonymousSession } from "./supabaseClient";
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
-const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_KEY || "";
-
-const headers = {
-  "Content-Type": "application/json",
-  "apikey": SUPABASE_KEY,
-  "Authorization": `Bearer ${SUPABASE_KEY}`,
-};
-
-// ── Articles ──────────────────────────────────────────────────────
+// ── Articles (public content, no per-user scoping needed) ───────────
 export async function getArticles(limit = 20, tag?: string) {
-  let url = `${SUPABASE_URL}/rest/v1/articles?order=score.desc,created_at.desc&limit=${limit}`;
-  if (tag) url += `&tag=eq.${tag}`;
-  const res = await fetch(url, { headers });
-  if (!res.ok) throw new Error(`Supabase fetch failed: ${res.status}`);
-  return res.json();
+  const supabase = getSupabase();
+  let query = supabase
+    .from("articles")
+    .select("*")
+    .order("score", { ascending: false })
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (tag) query = query.eq("tag", tag);
+  const { data, error } = await query;
+  if (error) throw new Error(`Supabase fetch failed: ${error.message}`);
+  return data;
 }
 
 export async function upsertArticle(article: {
@@ -30,60 +33,57 @@ export async function upsertArticle(article: {
   image_source?: string;
   score?: number;
 }) {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/articles`, {
-    method: "POST",
-    headers: { ...headers, "Prefer": "resolution=merge-duplicates" },
-    body: JSON.stringify(article),
-  });
-  if (!res.ok) throw new Error(`Supabase upsert failed: ${res.status}`);
-  return res.json();
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from("articles")
+    .upsert(article, { onConflict: "url" })
+    .select();
+  if (error) throw new Error(`Supabase upsert failed: ${error.message}`);
+  return data;
 }
 
-// ── User Actions ──────────────────────────────────────────────────
+// ── User Actions (scoped to the signed-in anonymous session) ────────
 export async function logAction(action: {
   url: string;
   action: "like" | "skip" | "save" | "read";
   tag: string;
   time_spent?: number;
 }) {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/user_actions`, {
-    method: "POST",
-    headers,
-    body: JSON.stringify(action),
-  });
-  if (!res.ok) throw new Error(`Supabase action failed: ${res.status}`);
+  await ensureAnonymousSession();
+  const supabase = getSupabase();
+  const { error } = await supabase.from("user_actions").insert(action);
+  if (error) throw new Error(`Supabase action failed: ${error.message}`);
 }
 
 export async function getUserActions() {
-  const res = await fetch(
-    `${SUPABASE_URL}/rest/v1/user_actions?order=created_at.desc&limit=100`,
-    { headers }
-  );
-  if (!res.ok) return [];
-  return res.json();
+  await ensureAnonymousSession();
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from("user_actions")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(100);
+  if (error) return [];
+  return data;
 }
 
 // ── Feed Cache ────────────────────────────────────────────────────
 export async function getFeedCache() {
-  const res = await fetch(
-    `${SUPABASE_URL}/rest/v1/feed_cache?order=created_at.desc&limit=1`,
-    { headers }
-  );
-  if (!res.ok) return null;
-  const data = await res.json();
-  if (!data.length) return null;
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from("feed_cache")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(1);
+  if (error || data || !data.length) return null;
   const cache = data[0];
-  // 1 hour cache
   const age = Date.now() - new Date(cache.created_at).getTime();
   if (age > 60 * 60 * 1000) return null;
   return cache.feed;
 }
 
 export async function saveFeedCache(feed: object[]) {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/feed_cache`, {
-    method: "POST",
-    headers,
-    body: JSON.stringify({ feed }),
-  });
-  if (!res.ok) throw new Error(`Supabase cache failed: ${res.status}`);
+  const supabase = getSupabase();
+  const { error } = await supabase.from("feed_cache").insert({ feed });
+  if (error) throw new Error(`Supabase cache failed: ${error.message}`);
 }
