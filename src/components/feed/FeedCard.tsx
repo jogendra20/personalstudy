@@ -53,9 +53,26 @@ export default function FeedCard({
   const [saved, setSaved]           = useState(false);
   const [tapped, setTapped]         = useState(false);
   const [imgLoaded, setImgLoaded]   = useState(false);
+  const [useOriginal, setUseOriginal] = useState(false);
+  const imgLoadedRef                = useRef(false);
   const [affinity, setAffinity]     = useState(1.0);
   const lastTap                     = useRef(0);
   const readStart                   = useRef<number>(0);
+
+  useEffect(() => { imgLoadedRef.current = imgLoaded; }, [imgLoaded]);
+
+  // wsrv.nl is a free, unmetered image proxy — great for cost, but on
+  // an occasional slow moment (cold cache, high load) it can hang.
+  // If the compressed version hasn't loaded within 3s, fall back to
+  // the original uncompressed URL so something shows rather than a
+  // shimmer that never resolves.
+  useEffect(() => {
+    if (!loadImage || !article.image_url) return;
+    const t = setTimeout(() => {
+      if (!imgLoadedRef.current) setUseOriginal(true);
+    }, 3000);
+    return () => clearTimeout(t);
+  }, [loadImage, article.image_url]);
 
   useEffect(() => {
     if (isActive) {
@@ -86,7 +103,9 @@ export default function FeedCard({
     : null;
   const trending = TAG_TRENDING[article.tag] || "Curated for you";
   const emoji    = TAG_EMOJI[article.tag] || "📚";
-  const imgSrc   = loadImage ? optimizeImage(article.image_url, 640, 70) : undefined;
+  const imgSrc   = !loadImage ? undefined
+    : useOriginal ? article.image_url
+    : optimizeImage(article.image_url, 640, 70);
 
   // Affinity bar width (1-5 scale → 20%-100%)
   const affinityPct = Math.round((affinity / 5) * 100);
@@ -272,7 +291,13 @@ export default function FeedCard({
             alt={article.title}
             loading="lazy"
             onLoad={() => setImgLoaded(true)}
-            onError={() => setImgLoaded(true)}
+            onError={() => {
+              if (!useOriginal) {
+                setUseOriginal(true); // proxy failed — try the original directly
+              } else {
+                setImgLoaded(true); // both failed — fall back to the emoji placeholder
+              }
+            }}
             style={{
               width: "100%", height: "100%",
               objectFit: "cover",
