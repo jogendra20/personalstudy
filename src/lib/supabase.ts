@@ -1,12 +1,17 @@
 /**
  * supabase.ts — data access for ONYX.
  *
- * User actions (likes/saves/reads) are scoped to the signed-in user's
- * real account (see AuthGate.tsx — signup is required before the feed
- * is reachable at all). Row Level Security on `user_actions` restricts
+ * User actions (likes/saves/reads) are scoped to a real, unspoofable
+ * per-visitor identity via Supabase Anonymous Auth (see
+ * supabaseClient.ts). Row Level Security on `user_actions` restricts
  * each person to their own rows.
+ *
+ * Until the Supabase dashboard setup (enabling Anonymous Sign-ins +
+ * the RLS migration) is done, signInAnonymously() will simply fail
+ * quietly and the app keeps working exactly as before — this degrades
+ * gracefully rather than breaking anything.
  */
-import { getSupabase } from "./supabaseClient";
+import { getSupabase, ensureAnonymousSession } from "./supabaseClient";
 
 // ── Articles (public content, no per-user scoping needed) ───────────
 export async function getArticles(limit = 20, tag?: string) {
@@ -23,25 +28,6 @@ export async function getArticles(limit = 20, tag?: string) {
   return data;
 }
 
-export async function upsertArticle(article: {
-  url: string;
-  title: string;
-  source: string;
-  tag: string;
-  summary?: string;
-  image_url?: string;
-  image_source?: string;
-  score?: number;
-}) {
-  const supabase = getSupabase();
-  const { data, error } = await supabase
-    .from("articles")
-    .upsert(article, { onConflict: "url" })
-    .select();
-  if (error) throw new Error(`Supabase upsert failed: ${error.message}`);
-  return data;
-}
-
 // ── User Actions (scoped to the signed-in anonymous session) ────────
 export async function logAction(action: {
   url: string;
@@ -49,12 +35,14 @@ export async function logAction(action: {
   tag: string;
   time_spent?: number;
 }) {
+  await ensureAnonymousSession();
   const supabase = getSupabase();
   const { error } = await supabase.from("user_actions").insert(action);
   if (error) throw new Error(`Supabase action failed: ${error.message}`);
 }
 
 export async function getUserActions() {
+  await ensureAnonymousSession();
   const supabase = getSupabase();
   const { data, error } = await supabase
     .from("user_actions")
