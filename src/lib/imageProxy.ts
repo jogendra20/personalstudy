@@ -12,6 +12,14 @@ export function optimizeImage(url?: string, width = 640, quality = 70): string |
   }
 }
 
+// AI-generated fallback cover art for articles whose RSS source didn't
+// include any image at all (common on some of the newer AI-lab blogs).
+// Pollinations is free, no API key, no signup.
+export function pollinationsCover(title: string, tag: string, width = 640, height = 420): string {
+  const prompt = encodeURIComponent(`${title}, ${tag}, clean minimal digital illustration`);
+  return `https://image.pollinations.ai/prompt/${prompt}?width=${width}&height=${height}&nologo=true`;
+}
+
 // True if the browser reports a slow/metered connection (Data Saver,
 // 2G, or 3G). Used to skip non-essential prefetching. Feature-detected
 // since Network Information API isn't supported everywhere (notably

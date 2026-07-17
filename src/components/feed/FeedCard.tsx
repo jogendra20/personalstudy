@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Article, recordRead, recordSkip, recordLike, getTagAffinity } from "@/lib/algorithm";
-import { optimizeImage } from "@/lib/imageProxy";
+import { optimizeImage, pollinationsCover } from "@/lib/imageProxy";
 
 interface FeedCardProps {
   article: Article;
@@ -67,7 +67,7 @@ export default function FeedCard({
   // the original uncompressed URL so something shows rather than a
   // shimmer that never resolves.
   useEffect(() => {
-    if (!loadImage || !article.image_url) return;
+    if (!loadImage) return;
     const t = setTimeout(() => {
       if (!imgLoadedRef.current) setUseOriginal(true);
     }, 3000);
@@ -103,9 +103,11 @@ export default function FeedCard({
     : null;
   const trending = TAG_TRENDING[article.tag] || "Curated for you";
   const emoji    = TAG_EMOJI[article.tag] || "📚";
+  const hasRealImage = Boolean(article.image_url);
   const imgSrc   = !loadImage ? undefined
-    : useOriginal ? article.image_url
-    : optimizeImage(article.image_url, 640, 70);
+    : useOriginal && hasRealImage ? article.image_url
+    : hasRealImage ? optimizeImage(article.image_url, 640, 70)
+    : pollinationsCover(article.title, article.tag);
 
   // Affinity bar width (1-5 scale → 20%-100%)
   const affinityPct = Math.round((affinity / 5) * 100);
@@ -289,13 +291,15 @@ export default function FeedCard({
           <img
             src={imgSrc}
             alt={article.title}
-            loading="lazy"
+            loading={isActive ? "eager" : "lazy"}
+            // @ts-ignore — fetchPriority isn't in the TS DOM lib yet on all versions, but is a real, valid HTML attribute
+            fetchpriority={isActive ? "high" : "auto"}
             onLoad={() => setImgLoaded(true)}
             onError={() => {
-              if (!useOriginal) {
+              if (!useOriginal && hasRealImage) {
                 setUseOriginal(true); // proxy failed — try the original directly
               } else {
-                setImgLoaded(true); // both failed — fall back to the emoji placeholder
+                setImgLoaded(true); // nothing left to try — fall back to the emoji placeholder
               }
             }}
             style={{

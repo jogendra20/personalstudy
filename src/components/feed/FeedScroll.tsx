@@ -169,8 +169,9 @@ export default function FeedScroll({ onXP, onBadge, scrollRef }: FeedScrollProps
   }
 
   const handleScroll = useCallback(() => {
-    if (!containerRef.current) return;
-    const { scrollTop, clientHeight, scrollHeight } = containerRef.current;
+    const el = scrollRef?.current || containerRef.current;
+    if (!el) return;
+    const { scrollTop, clientHeight, scrollHeight } = el;
     const currentIdx = Math.round(scrollTop / clientHeight);
     setPage(currentIdx);
 
@@ -196,9 +197,8 @@ export default function FeedScroll({ onXP, onBadge, scrollRef }: FeedScrollProps
 
   function handleSkip(url: string, tag: string) {
     logAction({ url, action: "skip", tag });
-    if (containerRef.current) {
-      containerRef.current.scrollBy({ top: window.innerHeight, behavior: "smooth" });
-    }
+    const el = scrollRef?.current || containerRef.current;
+    el?.scrollBy({ top: window.innerHeight, behavior: "smooth" });
   }
 
   function handleSave(url: string, tag: string) {
