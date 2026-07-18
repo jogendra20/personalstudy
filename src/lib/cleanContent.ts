@@ -10,6 +10,31 @@ export function buildCleanHtml(raw: string): string {
     .replace(/<--------------------------------------------------[\s\S]*?-->/g, "")
     .replace(/Press enter or click to view image in full size/gi, "");
 
+  // Protect <pre>/<code> blocks from the entity-decode + tag-filtering
+  // steps below by extracting them first. Code samples are often full
+  // of angle-bracket syntax (JSX, HTML examples) that must render as
+  // literal visible text, never as real tags. Decoding entities first
+  // and then stripping tags afterward — which is correct and necessary
+  // for the rest of the article — would treat a code sample like
+  // "<Component prop=\"x\">" as a real tag once decoded, and the
+  // KEEP-list filter would then delete it entirely, wiping the code
+  // block's content instead of preserving it as text.
+  const codeBlocks: string[] = [];
+  const stashCode = (asPre: boolean) => (_m: string, inner: string): string => {
+    const decoded = inner
+      .replace(/<[^>]+>/g, "")
+      .replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+      .replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#0?39;|&apos;/g, "'");
+    // Re-escape for guaranteed-safe literal display, regardless of
+    // what characters the code sample happens to contain.
+    const safe = decoded.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const idx = codeBlocks.length;
+    codeBlocks.push(asPre ? `<pre><code>${safe}</code></pre>` : `<code>${safe}</code>`);
+    return `@@ONYXCODEBLOCK${idx}@@`;
+  };
+  html = html.replace(/<pre[^>]*>([\s\S]*?)<\/pre>/gi, stashCode(true));
+  html = html.replace(/<code[^>]*>([\s\S]*?)<\/code>/gi, stashCode(false));
+
   // Decode entities BEFORE any tag processing/filtering below. Some
   // feeds double-escape their HTML (tags appear as literal "&lt;div&gt;"
   // text). If we decoded at the end instead, a disallowed tag hidden
@@ -22,21 +47,6 @@ export function buildCleanHtml(raw: string): string {
     .replace(/&nbsp;/g, " ").replace(/&amp;/g, "&");
 
   let body = html;
-
-  body = body.replace(/<pre[^>]*>([\s\S]*?)<\/pre>/gi, (_m: string, inner: string) => {
-    const text = inner
-      .replace(/<code[^>]*>([\s\S]*?)<\/code>/gi, "$1")
-      .replace(/<[^>]+>/g, "")
-      .replace(/&lt;/g, "<").replace(/&gt;/g, ">")
-      .replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#39;/g, "'")
-      .trim();
-    return `<pre><code>${text}</code></pre>`;
-  });
-  body = body.replace(/<code[^>]*>([\s\S]*?)<\/code>/gi, (_m: string, inner: string) => {
-    const text = inner.replace(/<[^>]+>/g, "")
-      .replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
-    return `<code>${text}</code>`;
-  });
 
   body = body.replace(/<picture[^>]*>([\s\S]*?)<\/picture>/gi, (_m: string, inner: string) => {
     const srcset = inner.match(/srcset="([^"]+)"/i)?.[1];
@@ -76,6 +86,11 @@ export function buildCleanHtml(raw: string): string {
     .replace(/&quot;/g, '"').replace(/&#39;/g, "'");
   body = body.replace(/(<br\/>\s*){3,}/gi, "<br/><br/>");
   body = body.replace(/\n{3,}/g, "\n\n");
+
+  // Restore the protected code blocks now — everything above ran
+  // without ever seeing their real content, so it can't have been
+  // decoded, filtered, or otherwise damaged.
+  body = body.replace(/@@ONYXCODEBLOCK(\d+)@@/g, (_m: string, i: string) => codeBlocks[Number(i)] || "");
 
   return body.trim();
 }

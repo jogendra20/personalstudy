@@ -466,14 +466,24 @@ function ReadPageInner() {
       )}
       <style>{`
         .article-content h1 { display: none; }
-        .article-content h2 { font-size: 1.1rem; font-weight: 600; margin: 24px 0 8px; line-height: 1.4; }
+        .article-content h2 { font-size: 1.1rem; font-weight: 600; margin: 28px 0 10px; line-height: 1.4; }
         .article-content h2:first-child { font-size: 1rem; font-weight: 400; color: #666; margin-top: 0; }
-        .article-content h3 { font-size: 1rem; font-weight: 600; margin: 20px 0 6px; }
-        .article-content p { margin-bottom: 1.4em; }
+        .article-content h3 { font-size: 1rem; font-weight: 600; margin: 24px 0 8px; }
+        .article-content p { margin-bottom: 1.5em; }
         .article-content a { color: #786028; text-decoration: underline; text-decoration-color: rgba(120,96,40,0.3); }
-        .article-content img { max-width: 100%; border-radius: 8px; margin: 16px 0; }
+        .article-content img { max-width: 100%; border-radius: 8px; margin: 20px 0; }
         .article-content blockquote { border-left: 2px solid #D4AF37; margin: 20px 0; padding: 8px 16px; color: #666; font-style: italic; }
-        .article-content pre, .article-content code { font-family: 'DM Mono', monospace; font-size: 0.82em; background: rgba(0,0,0,0.04); border-radius: 4px; padding: 2px 6px; }
+        .article-content code { font-family: 'DM Mono', monospace; font-size: 0.82em; background: rgba(0,0,0,0.04); border-radius: 4px; padding: 2px 6px; }
+        .article-content pre { background: rgba(0,0,0,0.04); border-radius: 8px; padding: 14px 16px; margin: 20px 0; overflow-x: auto; }
+        .article-content pre code { background: none; padding: 0; font-size: 0.8em; line-height: 1.6; white-space: pre; }
+        .article-content ul, .article-content ol { margin: 0 0 1.5em; padding-left: 0.2em; }
+        .article-content li { margin-bottom: 0.7em; line-height: 1.75; }
+        .article-content ul { list-style: none; }
+        .article-content ul li { position: relative; padding-left: 22px; }
+        .article-content ul li::before { content: "✦"; position: absolute; left: 0; top: 0.15em; color: #D4AF37; font-size: 0.7em; }
+        .article-content ol { padding-left: 1.5em; }
+        .article-content ol li { padding-left: 4px; }
+        .article-content ol li::marker { color: #D4AF37; font-weight: 700; font-family: 'DM Mono', monospace; }
         @keyframes pageIn {
           0%   { opacity: 0; transform: translateY(12px); }
           100% { opacity: 1; transform: translateY(0); }
