@@ -1,5 +1,6 @@
 "use client";
 import { getForgeKeys, saveForgeTask, getForgeTasks } from "@/lib/forge";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -485,9 +486,11 @@ function ReadPageInner() {
 
 export default function ReadPage() {
   return (
-    <Suspense fallback={<div style={{ minHeight: "100vh", background: "var(--bg)", display: "flex", alignItems: "center", justifyContent: "center" }}><div style={{ color: "var(--text3)", fontFamily: "'DM Mono', monospace", fontSize: "0.85rem" }}>Loading...</div></div>}>
-      <ReadPageInner />
-    </Suspense>
+    <ErrorBoundary>
+      <Suspense fallback={<div style={{ minHeight: "100vh", background: "var(--bg)", display: "flex", alignItems: "center", justifyContent: "center" }}><div style={{ color: "var(--text3)", fontFamily: "'DM Mono', monospace", fontSize: "0.85rem" }}>Loading...</div></div>}>
+        <ReadPageInner />
+      </Suspense>
+    </ErrorBoundary>
   );
 }
 

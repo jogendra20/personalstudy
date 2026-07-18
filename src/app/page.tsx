@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useRef } from "react";
 import FeedScroll from "@/components/feed/FeedScroll";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 interface BadgeToast {
   name: string;
@@ -33,7 +34,9 @@ export default function Home() {
       overflow: "hidden",
       background: "#FAF9F5",
     }}>
-      <FeedScroll onXP={handleXP} onBadge={handleBadge} scrollRef={feedRef} />
+      <ErrorBoundary>
+        <FeedScroll onXP={handleXP} onBadge={handleBadge} scrollRef={feedRef} />
+      </ErrorBoundary>
 
       <div style={{
         position: "fixed", top: "80px", right: "16px",

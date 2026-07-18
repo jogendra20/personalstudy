@@ -1,4 +1,4 @@
-const CACHE = "onyx-v2";
+const CACHE = "onyx-v3";
 const SHELL = ["/", "/manifest.json"];
 
 self.addEventListener("install", e => {
@@ -27,7 +27,7 @@ self.addEventListener("fetch", e => {
       !url.includes("tavily.com")) return;
 
   // API calls — network only, no cache
-  if (url.includes("/api/scrape") || url.includes("/api/forge")) {
+  if (url.includes("/api/scrape") || url.includes("/api/forge") || url.includes("/api/feed")) {
     e.respondWith(fetch(e.request).catch(() => new Response(JSON.stringify({ error: "offline" }), { headers: { "Content-Type": "application/json" } })));
     return;
   }
