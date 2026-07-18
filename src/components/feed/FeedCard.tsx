@@ -54,6 +54,7 @@ export default function FeedCard({
   const [tapped, setTapped]         = useState(false);
   const [imgLoaded, setImgLoaded]   = useState(false);
   const [useOriginal, setUseOriginal] = useState(false);
+  const [giveUpImage, setGiveUpImage] = useState(false);
   const imgLoadedRef                = useRef(false);
   const [affinity, setAffinity]     = useState(1.0);
   const lastTap                     = useRef(0);
@@ -63,16 +64,23 @@ export default function FeedCard({
 
   // wsrv.nl is a free, unmetered image proxy — great for cost, but on
   // an occasional slow moment (cold cache, high load) it can hang.
-  // If the compressed version hasn't loaded within 3s, fall back to
-  // the original uncompressed URL so something shows rather than a
-  // shimmer that never resolves.
+  // Stage 1: if the compressed version hasn't loaded within 3s, fall
+  // back to the original uncompressed URL. Stage 2 (this effect firing
+  // again once useOriginal flips true): if THAT also hangs another 3s,
+  // give up cleanly and show the emoji placeholder instead of leaving
+  // the shimmer stuck forever with nothing ever resolving.
   useEffect(() => {
-    if (!loadImage) return;
+    if (!loadImage || giveUpImage) return;
     const t = setTimeout(() => {
-      if (!imgLoadedRef.current) setUseOriginal(true);
+      if (imgLoadedRef.current) return;
+      if (!useOriginal) {
+        setUseOriginal(true);
+      } else {
+        setGiveUpImage(true);
+      }
     }, 3000);
     return () => clearTimeout(t);
-  }, [loadImage, article.image_url]);
+  }, [loadImage, useOriginal, giveUpImage]);
 
   useEffect(() => {
     if (isActive) {
@@ -104,7 +112,7 @@ export default function FeedCard({
   const trending = TAG_TRENDING[article.tag] || "Curated for you";
   const emoji    = TAG_EMOJI[article.tag] || "📚";
   const hasRealImage = Boolean(article.image_url);
-  const imgSrc   = !loadImage ? undefined
+  const imgSrc   = !loadImage || giveUpImage ? undefined
     : useOriginal && hasRealImage ? article.image_url
     : hasRealImage ? optimizeImage(article.image_url, 640, 70)
     : pollinationsCover(article.title, article.tag);
@@ -278,7 +286,7 @@ export default function FeedCard({
         height: "420px", width: "100%",
         overflow: "hidden", flexShrink: 0,
       }}>
-        {!imgLoaded && (
+        {!imgLoaded && !giveUpImage && (
           <div style={{
             position: "absolute", inset: 0,
             background: "linear-gradient(90deg, #f0ede6 25%, #e8e4db 50%, #f0ede6 75%)",
@@ -299,7 +307,7 @@ export default function FeedCard({
               if (!useOriginal && hasRealImage) {
                 setUseOriginal(true); // proxy failed — try the original directly
               } else {
-                setImgLoaded(true); // nothing left to try — fall back to the emoji placeholder
+                setGiveUpImage(true); // nothing left to try — show the emoji placeholder
               }
             }}
             style={{

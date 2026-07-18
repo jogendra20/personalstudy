@@ -98,8 +98,31 @@ const FEEDS = [
   { url: "https://www.marktechpost.com/feed/",                   source: "marktechpost", tag: "AI" },
 ] as const;
 
+function decodeEntities(text: string): string {
+  // Some feeds (dev.to/Forem among them) double-escape their HTML, so
+  // tags show up as literal "&lt;strong&gt;" text rather than real
+  // "<strong>" tags. Decode those back to real characters first so the
+  // tag-stripping regex below can actually see and remove them —
+  // otherwise the tag names are left behind as plain text ("strong",
+  // "/strong") once the entity brackets are stripped out around them.
+  return text
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#0?39;|&apos;/g, "'")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&"); // must run last, or "&amp;lt;" would over-decode
+}
+
 function stripHtml(html: string): string {
-  return html.replace(/<[^>]*>/g, "").replace(/&[^;]+;/g, " ").trim();
+  const decoded = decodeEntities(html);
+  return decoded
+    .replace(/<[^>]*>/g, "")
+    // Bounded to realistic entity lengths (named or numeric) so a
+    // stray "&" in ordinary text — "Q&A", "R&D" — can't accidentally
+    // consume everything up to some unrelated semicolon later on.
+    .replace(/&#?\w{1,10};/g, " ")
+    .trim();
 }
 
 function estimateReadTime(text: string): string {
@@ -235,6 +258,13 @@ export async function GET() {
     for (const item of r.value) {
       const key = item.title.toLowerCase().slice(0, 60);
       if (seen.has(key) || !item.url || !item.title) continue;
+      // Only show articles the source's own RSS fully syndicates. If a
+      // feed only gives a snippet, we don't have legal grounds to show
+      // the full text — and we never fetch the live page to fill the
+      // gap, since that would recreate the scraping risk that was
+      // deliberately removed earlier in this project. Excluding these
+      // here means the app never redirects out to an external site.
+      if (!item.hasFullContent) continue;
       seen.add(key);
       all.push(item);
     }

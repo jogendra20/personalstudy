@@ -7,8 +7,19 @@ export function buildCleanHtml(raw: string): string {
   html = html
     .replace(/<script[\s\S]*?<\/script>/gi, "")
     .replace(/<style[\s\S]*?<\/style>/gi, "")
-    .replace(/<!--[\s\S]*?-->/g, "")
+    .replace(/<--------------------------------------------------[\s\S]*?-->/g, "")
     .replace(/Press enter or click to view image in full size/gi, "");
+
+  // Decode entities BEFORE any tag processing/filtering below. Some
+  // feeds double-escape their HTML (tags appear as literal "&lt;div&gt;"
+  // text). If we decoded at the end instead, a disallowed tag hidden
+  // this way would be invisible to the KEEP-list filter — which only
+  // recognizes real "<...>" tags — and would only become a real tag
+  // *after* filtering already ran, slipping straight through it.
+  html = html
+    .replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"').replace(/&#0?39;|&apos;/g, "'")
+    .replace(/&nbsp;/g, " ").replace(/&amp;/g, "&");
 
   let body = html;
 
