@@ -139,6 +139,49 @@ function extractCover(xml: string): string | undefined {
   return url;
 }
 
+// For articles whose RSS entry didn't include an image, fall back to
+// the article's own Open Graph preview image — the same photo that
+// shows up when this link is pasted into WhatsApp, Twitter, iMessage,
+// etc. It's metadata the publisher put there specifically to be shown
+// in previews elsewhere, so this is on firmer legal footing than
+// scraping, and gives a real, on-topic photo instead of generic AI art.
+// Only reads the page far enough to find </head> (with a hard byte
+// cap) — never downloads or looks at the article body itself.
+async function fetchOgImage(url: string): Promise<string | undefined> {
+  try {
+    const res = await fetch(url, {
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; Onyx/1.0; RSS Reader)" },
+      signal: AbortSignal.timeout(2500),
+    });
+    if (!res.ok || !res.body) return undefined;
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let html = "";
+    const MAX_BYTES = 60_000; // the <head> is comfortably within this
+    let bytesRead = 0;
+
+    while (bytesRead < MAX_BYTES) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      bytesRead += value.length;
+      html += decoder.decode(value, { stream: true });
+      if (/<\/head>/i.test(html)) break;
+    }
+    try { reader.cancel(); } catch {}
+
+    const og =
+      html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i) ||
+      html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i) ||
+      html.match(/<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/i);
+    const src = og?.[1];
+    if (!src) return undefined;
+    try { return new URL(src, url).toString(); } catch { return undefined; }
+  } catch {
+    return undefined;
+  }
+}
+
 // Clean Medium URLs — strip ?source=rss... tracking params
 function cleanUrl(url: string, source: string): string {
   if (source === "medium") {
@@ -269,6 +312,18 @@ export async function GET() {
       all.push(item);
     }
   }
+
+  // Fill in real preview photos for articles whose RSS didn't include
+  // one, instead of leaving them to fall back to slow AI-generated art.
+  // Bounded to a fixed batch so this can't blow the function's time
+  // limit — these run concurrently, so worst case adds ~2.5s total,
+  // not 2.5s per article.
+  const needsImage = all.filter(a => !a.cover).slice(0, 24);
+  const ogResults = await Promise.allSettled(needsImage.map(a => fetchOgImage(a.url)));
+  needsImage.forEach((item, i) => {
+    const r = ogResults[i];
+    if (r.status === "fulfilled" && r.value) item.cover = r.value;
+  });
 
   // Group by source, shuffle each group, then round-robin interleave —
   // guarantees every source surfaces evenly instead of clustering by
